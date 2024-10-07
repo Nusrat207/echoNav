@@ -5,7 +5,7 @@ from langchain.prompts import PromptTemplate
 
 app = Flask(__name__)
 
-HUGGINGFACEHUB_API_TOKEN = "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"
+HUGGINGFACEHUB_API_TOKEN = ""
 model_id = "google/flan-t5-large"
 
 llm = HuggingFaceHub(huggingfacehub_api_token=HUGGINGFACEHUB_API_TOKEN,
