@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:first_pro/screens/second_page.dart';
 
@@ -36,12 +37,36 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    _timer = Timer(const Duration(seconds: 5), () {
+      _navigateToNextPage();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel(); 
+    super.dispose();
+  }
+
+  void _navigateToNextPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => SecondPage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 210.0,
-        title: SizedBox(
+        title: Container(
           height: 210.0,
           child: const Column(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -71,7 +96,6 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            // Bigger image at the center
             Image.asset(
               'assets/image.jpg',
               width: 300,
@@ -79,22 +103,15 @@ class _MyHomePageState extends State<MyHomePage> {
               fit: BoxFit.cover,
             ),
             const SizedBox(height: 20),
-
             const SizedBox(height: 30),
-
-            // Get Started button
             ElevatedButton(
               onPressed: () {
-                // Add your navigation action here
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SecondPage()),
-                );
+                _timer?.cancel();
+                _navigateToNextPage();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF610A8A),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 50, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 12),
                 textStyle: const TextStyle(fontSize: 24),
               ),
               child: const Text(
@@ -110,4 +127,4 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
-}
+} 
