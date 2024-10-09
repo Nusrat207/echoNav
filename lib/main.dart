@@ -46,7 +46,7 @@ class _MyHomePageState extends State<MyHomePage> {
           child: const Column(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              const Text(
+              Text(
                 'Welcome to EchoNav',
                 style: TextStyle(
                   fontSize: 40,
@@ -54,8 +54,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   color: Color(0xFF610A8A),
                 ),
               ),
-              const SizedBox(height: 10),
-              const Text(
+              SizedBox(height: 10),
+              Text(
                 'Navigate, Detect, and Connect with ease',
                 style: TextStyle(
                   fontSize: 20,
