@@ -1,10 +1,47 @@
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 
-class ObjectRecognitionScreen extends StatelessWidget {
+class ObjectRecognitionScreen extends StatefulWidget {
   const ObjectRecognitionScreen({super.key});
 
   @override
+  _ObjectRecognitionScreenState createState() =>
+      _ObjectRecognitionScreenState();
+}
+
+class _ObjectRecognitionScreenState extends State<ObjectRecognitionScreen> {
+  CameraController? _cameraController;
+  List<CameraDescription>? cameras;
+
+  @override
+  void initState() {
+    super.initState();
+    initializeCamera();
+  }
+
+  // Initialize the camera
+  Future<void> initializeCamera() async {
+    try {
+      cameras = await availableCameras();
+      _cameraController = CameraController(cameras![0], ResolutionPreset.high);
+      await _cameraController!.initialize();
+      setState(() {});
+    } catch (e) {
+      print("Error initializing camera: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    _cameraController?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      return const Center(child: CircularProgressIndicator());
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text("Object Recognition"),
@@ -12,12 +49,9 @@ class ObjectRecognitionScreen extends StatelessWidget {
       ),
       body: Stack(
         children: [
-          // 1. Camera feed placeholder
+          // 1. Live camera feed
           Positioned.fill(
-            child: Image.network(
-              'https://example.com/camera_feed.jpg', // Replace with actual camera feed
-              fit: BoxFit.cover,
-            ),
+            child: CameraPreview(_cameraController!),
           ),
 
           // 2. Simulating object detection boxes

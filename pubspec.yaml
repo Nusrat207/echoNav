@@ -32,6 +32,7 @@ dependencies:
     sdk: flutter
   flutter_tts: ^4.0.2 # Update to the latest version
   speech_to_text: ^7.0.0 # Update to the latest version
+  camera: ^0.10.0+1
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
