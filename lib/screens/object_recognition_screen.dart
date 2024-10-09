@@ -44,8 +44,27 @@ class _ObjectRecognitionScreenState extends State<ObjectRecognitionScreen> {
     }
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Object Recognition"),
-        backgroundColor: const Color(0xFF610A8A), // Purple app bar color
+        title: const Text(
+          "Object Recognition",
+          style: TextStyle(
+            fontSize: 22, // Larger font size for better visibility
+            fontWeight: FontWeight.w600, // Semi-bold font weight
+            color: Colors.white, // White text color for contrast
+          ),
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF8E24AA), // Light purple
+                Color(0xFF6A1B9A), // Darker purple
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        elevation: 4, // Add shadow effect for depth
       ),
       body: Stack(
         children: [
@@ -101,7 +120,7 @@ class _ObjectRecognitionScreenState extends State<ObjectRecognitionScreen> {
   }
 }
 
-// 4. Custom painter for drawing object detection boxes
+// 5. Custom painter for drawing object detection boxes
 class DetectionBoxesPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -126,7 +145,7 @@ class DetectionBoxesPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// 5. Placeholder widget for sound wave visualization
+// 6. Placeholder widget for sound wave visualization
 class SoundWaveVisualizer extends StatelessWidget {
   const SoundWaveVisualizer({super.key});
 
