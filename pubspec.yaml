@@ -41,6 +41,7 @@ dependencies:
 
   camera: ^0.10.0+1
 
+  tflite: ^1.1.2
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -64,6 +65,8 @@ dev_dependencies:
 flutter:
   assets:
     - assets/image.jpg
+    - assets/mobilenet_v1_1.0_224.tflite
+    - assets/mobilenet_v1_1.0_224.txt
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
