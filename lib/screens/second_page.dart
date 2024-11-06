@@ -99,13 +99,13 @@ class _SecondPageState extends State<SecondPage>
           MaterialPageRoute(builder: (context) => const NavigationScreen()),
         );
         break;
-      case 'three':
+     /* case 'three':
         Navigator.push(
           context,
           MaterialPageRoute(
               builder: (context) => const ObjectRecognitionScreen()),
         );
-        break;
+        break;*/
       case 'four':
         Navigator.push(
           context,

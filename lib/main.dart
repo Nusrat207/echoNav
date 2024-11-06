@@ -66,7 +66,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 210.0,
-        title: Container(
+        title: SizedBox(
           height: 210.0,
           child: const Column(
             mainAxisAlignment: MainAxisAlignment.end,
