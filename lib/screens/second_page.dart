@@ -1,194 +1,168 @@
+
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'voice_assistant_screen.dart';
+import 'voice_ass.dart';
 import 'navigation_screen.dart';
+import 'object_recognition_screen.dart';
 import 'task_management_screen.dart';
 import 'freemium_model_screen.dart';
-import 'google_maps_screen.dart';
 
 class SecondPage extends StatefulWidget {
   const SecondPage({super.key});
 
   @override
-  _SecondPageState createState() => _SecondPageState();
+  State<SecondPage> createState() => _SecondPageState();
 }
 
-class _SecondPageState extends State<SecondPage>
-    with SingleTickerProviderStateMixin {
-  late FlutterTts flutterTts;
-  late stt.SpeechToText speech;
+class _SecondPageState extends State<SecondPage> {
   bool isListening = false;
-  bool isSpeaking = false;
-  late AnimationController _controller;
-  late Animation<double> _animation;
-
-  bool hasSpokenOptions = false;
+  bool isTtsSpeaking = false; 
+  bool _hasNavigated = false; 
+  late stt.SpeechToText _speechToText;
+  late FlutterTts _flutterTts;  
+  String text = "Press the button & speak";
+  double confidence = 1.0;
 
   @override
   void initState() {
     super.initState();
-    flutterTts = FlutterTts();
-    speech = stt.SpeechToText();
-    _checkSpeechRecognitionAvailability();
+    _speechToText = stt.SpeechToText();
+    _flutterTts = FlutterTts();
 
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 500),
-      vsync: this,
-    )..repeat(reverse: true);
-
-    _animation = Tween<double>(begin: 1.0, end: 1.3).animate(_controller);
-    _speakFeatures();
+    _speakOptions();
   }
 
   @override
   void dispose() {
-    //flutterTts.stop();
-    // speech.stop();
-    _controller.dispose();
+    _flutterTts.stop(); 
+    _speechToText.stop(); 
     super.dispose();
   }
 
-  Future<void> _checkSpeechRecognitionAvailability() async {
-    bool available = await speech.initialize(
-      onStatus: (status) => print('Status: $status'),
-      onError: (error) => print('Error: ${error.errorMsg}'),
-    );
-    print('Speech recognition available: $available');
-  }
+  Future<void> _speakOptions() async {
+    isTtsSpeaking = true;
+    _hasNavigated = false; 
 
-  Future<void> _speakFeatures() async {
-    String features =
-        "Welcome to EchoNav's Tools. Say 1 for Voice Assistant, say 2 for Navigation, say 3 for Object Recognition, say 4 for Reminders and Task Management, and say 5 for Freemium Model.";
-    await flutterTts.setLanguage("en-US");
-    await flutterTts.setPitch(1.0);
+    String optionsText = "The features are Voice Assistant, Navigation, Object Recognition, Task Management, and Freemium Model. Which one would you like to use?";
 
-    setState(() {
-      isSpeaking = true;
-    });
+    await _flutterTts.speak(optionsText);
+    await _flutterTts.awaitSpeakCompletion(true);
 
-    await flutterTts.speak(features);
-
-    flutterTts.setCompletionHandler(() async {
-      setState(() {
-        isSpeaking = false;
-      });
-      _controller.stop();
-      _controller.reset();
-
-      await Future.delayed(const Duration(seconds: 1));
-      _listen();
-    });
-  }
-
-  void _navigateToFeature(String recognizedWords) {
-    flutterTts.stop();
-    //  speech.stop();
-    _controller.dispose();
-
-    switch (recognizedWords) {
-      case 'one':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const VoiceAssistantScreen()),
-        );
-        break;
-      case 'two':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const NavigationScreen()),
-        );
-        break;
-      /* case 'three':
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => const ObjectRecognitionScreen()),
-        );
-        break;*/
-      case 'four':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const TaskManagementScreen()),
-        );
-        break;
-      case 'five':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const FreemiumModelScreen()),
-        );
-      case 'six':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const GoogleMapsScreen()),
-        );
-        break;
-      default:
-        break;
+    if (isTtsSpeaking) {
+      captureVoice();
     }
   }
 
-  void _listen() async {
-    if (!isListening) {
-      bool available = await speech.initialize(
-        onStatus: (status) {
-          print('Status: $status');
-          setState(() {
-            isListening = status == "listening";
-          });
-        },
-        onError: (error) {
-          print('Error: ${error.errorMsg}');
-        },
-      );
-
+  void captureVoice() async {
+    if (!isListening && isTtsSpeaking) {
+      bool available = await _speechToText.initialize();
       if (available) {
-        setState(() {
-          isListening = true;
-        });
-
-        speech.listen(
+        setState(() => isListening = true);
+        _speechToText.listen(
           onResult: (result) {
-            String recognizedWords = result.recognizedWords.toLowerCase();
-            print('Recognized words: $recognizedWords');
-
-            if (result.hasConfidenceRating && result.confidence > 0) {
-              print("Confidence: ${result.confidence}");
-            }
-
-            if (recognizedWords.isNotEmpty) {
-              if (['one', 'two', 'three', 'four', 'five', 'six']
-                  .contains(recognizedWords)) {
-                speech.stop();
-                _navigateToFeature(recognizedWords);
-              } else {
-                print('Unrecognized option: $recognizedWords');
-                flutterTts.speak(
-                    "I didn't understand that. Please say one, two, three, four, or five.");
+            setState(() {
+              text = result.recognizedWords;
+              if (result.hasConfidenceRating && result.confidence > 0) {
+                confidence = result.confidence;
               }
-            } else {
-              print("No words recognized");
-            }
+              print('Recognized: $text');
+
+              _navigateToFeature(text.toLowerCase(), fromVoiceCommand: true);
+            });
           },
-          listenFor: Duration(seconds: 8),
-          pauseFor: Duration(seconds: 3),
-          localeId: 'en_US',
-          cancelOnError: true,
         );
-      } else {
-        print('Speech recognition not available');
+
+        await Future.delayed(Duration(seconds: 6));
+        _speechToText.stop();
+        setState(() => isListening = false);
       }
     }
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // if (!isSpeaking) {
-    //   _speakFeatures();
-    // }
+  void _navigateToFeature(String command, {required bool fromVoiceCommand}) {
+    if (fromVoiceCommand && _hasNavigated) return; 
+    _hasNavigated = fromVoiceCommand; 
 
-    setState(() {});
+    _speechToText.stop(); 
+
+    if (command.contains('voice assistant')  || command.contains('voice')  || command.contains('assistant')) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => Stt()),
+      ).then((_) {
+        _hasNavigated = false; 
+        _speakOptions();
+      });
+    } else if (command.contains('navigation')) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => NavigationScreen()),
+      ).then((_) {
+        _hasNavigated = false;
+        _speakOptions();
+      });
+    } else if (command.contains('object recognition') || command.contains('object') ) {
+      Navigator.push(
+        context,
+       MaterialPageRoute(builder: (context) => ObjectRecognitionPage()),
+      ).then((_) {
+        _hasNavigated = false;
+        _speakOptions();
+      });
+    } else if (command.contains('task management') || command.contains('reminder') ) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => TaskManagementScreen()),
+      ).then((_) {
+        _hasNavigated = false;
+        _speakOptions();
+      });
+    } else if (command.contains('freemium') || command.contains('model')) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => FreemiumModelScreen()),
+      ).then((_) {
+        _hasNavigated = false;
+        _speakOptions();
+      });
+    } else {
+   
+     String x = "I didn't understand";
+      //_flutterTts.speak(x);  
+      text = "";
+      _hasNavigated = false;
+
+   // int speechDuration = (x.length * 83); 
+   // Future.delayed(Duration(milliseconds: speechDuration));
+   // captureVoice();
+    }
+  }
+
+  Widget _buildFeatureTile(IconData icon, String title, String subtitle, String commandKeyword) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14.0),
+      child: ListTile(
+        leading: Icon(
+          icon,
+          color: Colors.deepPurple,
+          size: 40, 
+        ),
+        title: Text(
+          title,
+          style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(fontSize: 18), 
+        ),
+        onTap: () {
+          _flutterTts.stop(); 
+          isTtsSpeaking = false; 
+          _navigateToFeature(commandKeyword, fromVoiceCommand: false);
+        },
+      ),
+    );
   }
 
   @override
@@ -209,106 +183,27 @@ class _SecondPageState extends State<SecondPage>
         color: const Color.fromARGB(255, 249, 238, 255),
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          children: <Widget>[
-            const SizedBox(height: 50),
-            GestureDetector(
-              onTap: () {
-                if (!isSpeaking) {
-                  _listen();
-                }
-              },
-              child: ScaleTransition(
-                scale: _animation,
-                child: const Icon(
-                  Icons.volume_up,
-                  size: 130,
-                  color: Color(0xFF610A8A),
-                ),
-              ),
-            ),
-            const SizedBox(height: 40),
-            // const Text(
-            //   'Select a feature to explore:',
-            //   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            //  ),
-            const SizedBox(height: 20),
+          mainAxisAlignment: MainAxisAlignment.center, 
+          children: [
+            
             Expanded(
-              child: ListView(
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.mic, color: Colors.deepPurple),
-                    title: const Text(
-                      'Voice Assistant',
-                      style:
-                          TextStyle(fontSize: 23, fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: const Text(
-                        'Convert speech to text or paste content for text-to-speech.'),
-                    onTap: () => _navigateToFeature('one'),
-                  ),
-                  const SizedBox(height: 7),
-                  ListTile(
-                    leading:
-                        const Icon(Icons.navigation, color: Colors.deepPurple),
-                    title: const Text(
-                      'Navigation',
-                      style:
-                          TextStyle(fontSize: 23, fontWeight: FontWeight.bold),
-                    ),
-                    subtitle:
-                        const Text('Seamless navigation with voice commands.'),
-                    onTap: () => _navigateToFeature('two'),
-                  ),
-                  const SizedBox(height: 7),
-                  ListTile(
-                    leading:
-                        const Icon(Icons.computer, color: Colors.deepPurple),
-                    title: const Text(
-                      'Object Recognition',
-                      style:
-                          TextStyle(fontSize: 23, fontWeight: FontWeight.bold),
-                    ),
-                    subtitle:
-                        const Text('Detect and identify objects using AI.'),
-                    onTap: () => _navigateToFeature('three'),
-                  ),
-                  const SizedBox(height: 7),
-                  ListTile(
-                    leading: const Icon(Icons.task, color: Colors.deepPurple),
-                    title: const Text(
-                      'Reminders and Task Management',
-                      style:
-                          TextStyle(fontSize: 23, fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: const Text('Organize tasks and set reminders'),
-                    onTap: () => _navigateToFeature('four'),
-                  ),
-                  const SizedBox(height: 10),
-                  ListTile(
-                    leading: const Icon(Icons.monetization_on,
-                        color: Colors.deepPurple),
-                    title: const Text(
-                      'Freemium Model',
-                      style:
-                          TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: const Text('Enjoy free features or upgrade'),
-                    onTap: () => _navigateToFeature('five'),
-                  ),
-                  const SizedBox(height: 10),
-                  ListTile(
-                    leading: const Icon(Icons.monetization_on,
-                        color: Colors.deepPurple),
-                    title: const Text(
-                      'Maps',
-                      style:
-                          TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: const Text('Navigate Using Google Maps'),
-                    onTap: () => _navigateToFeature('six'),
-                  ),
-                  const SizedBox(height: 10),
-                ],
+              child: Align(
+                alignment: Alignment.center, 
+                child: ListView(
+                  shrinkWrap: true, 
+                  children: [
+                    _buildFeatureTile(
+                        Icons.mic, "Voice Assistant", "Convert speech to text or paste content for text-to-speech.", "voice assistant"),
+                    _buildFeatureTile(
+                        Icons.navigation, "Navigation", "Seamless navigation with voice commands.", "navigation"),
+                    _buildFeatureTile(
+                        Icons.computer, "Object Recognition", "Detect and identify objects using AI.", "object recognition"),
+                    _buildFeatureTile(
+                        Icons.task, "Reminders and Task Management", "Organize tasks and set reminders", "task management"),
+                    _buildFeatureTile(
+                        Icons.monetization_on, "Freemium Model", "Enjoy free features or upgrade", "freemium model"),
+                  ],
+                ),
               ),
             ),
           ],
