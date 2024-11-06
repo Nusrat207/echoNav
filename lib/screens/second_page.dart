@@ -3,7 +3,6 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'voice_assistant_screen.dart';
 import 'navigation_screen.dart';
-import 'object_recognition_screen.dart';
 import 'task_management_screen.dart';
 import 'freemium_model_screen.dart';
 import 'google_maps_screen.dart';
@@ -100,7 +99,7 @@ class _SecondPageState extends State<SecondPage>
           MaterialPageRoute(builder: (context) => const NavigationScreen()),
         );
         break;
-     /* case 'three':
+      /* case 'three':
         Navigator.push(
           context,
           MaterialPageRoute(
