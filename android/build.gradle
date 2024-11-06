@@ -7,6 +7,7 @@
 
 allprojects {
     repositories {
+        maven { url 'https://jcenter.bintray.com/' }
         google()
         mavenCentral()
     }
@@ -22,3 +23,8 @@ subprojects {
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
+
+configurations.all {
+    resolutionStrategy.force 'com.squareup:javawriter:2.5.0'
+}
+

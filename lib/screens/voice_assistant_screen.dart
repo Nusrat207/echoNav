@@ -17,7 +17,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
   late AnimationController _animationController;
   bool _isListening = false;
   String _recognizedText = 'Press the button and start speaking...';
-  double _micButtonSize = 80;
+  final double _micButtonSize = 80;
   Timer? _startListeningTimer;
 
   @override
