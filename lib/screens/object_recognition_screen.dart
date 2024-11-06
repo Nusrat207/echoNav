@@ -1,6 +1,8 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 
+
+/*
 class ObjectRecognitionScreen extends StatefulWidget {
   const ObjectRecognitionScreen({super.key});
 
@@ -12,11 +14,23 @@ class ObjectRecognitionScreen extends StatefulWidget {
 class _ObjectRecognitionScreenState extends State<ObjectRecognitionScreen> {
   CameraController? _cameraController;
   List<CameraDescription>? cameras;
+  CameraImage? imgCamera;
+  String result="";
+  bool isWorking=false;
+
+  loadModel() async {
+    await Tflite.loadModel(
+        model: "assets/mobilenet_v1_1.0_224.tflite",
+        labels: "assets/mobilenet_v1_1.0_224.txt"
+    );
+  }
 
   @override
   void initState() {
     super.initState();
     initializeCamera();
+
+    loadModel();
   }
 
   // Initialize the camera
@@ -25,16 +39,104 @@ class _ObjectRecognitionScreenState extends State<ObjectRecognitionScreen> {
       cameras = await availableCameras();
       _cameraController = CameraController(cameras![0], ResolutionPreset.high);
       await _cameraController!.initialize();
-      setState(() {});
+
+      if( _cameraController!.value.isInitialized ) {
+        setState(() {
+          if(!isWorking) {
+            isWorking = true;
+            _cameraController?.startImageStream((imageFromStream) {
+            imgCamera = imageFromStream;
+            runModelOnStreamFrames();
+          });
+        }
+        });
+      }
     } catch (e) {
       print("Error initializing camera: $e");
     }
   }
 
+  Future<void> runModelOnStreamFrames() async {
+    // Use a local reference to ensure imgCamera doesn't change during execution
+    final cameraImage = imgCamera;
+
+    if (cameraImage != null){
+
+      try {
+        var recognitions = await Tflite.runModelOnFrame(
+          bytesList: cameraImage.planes.map((plane) => plane.bytes).toList(),
+          imageHeight: cameraImage.height,
+          imageWidth: cameraImage.width,
+          imageMean: 127.5,
+          imageStd: 127.5,
+          rotation: 90,
+          numResults: 2,
+          threshold: 0.1,
+          asynch: true,
+        );
+
+        // Clear the result and populate with new recognitions
+        String newResult = "";
+        recognitions?.forEach((response) {
+          newResult += "${response["label"]}  ${(response["confidence"] as double).toStringAsFixed(2)}\n\n";
+        });
+
+        // Update the result in the UI
+        setState(() {
+          result = newResult;
+          print(result);
+        });
+      } catch (e) {
+        print("Error running model on frame: $e");
+      } finally {
+        // Mark as not working regardless of success or failure
+        //isWorking = false;
+      }
+    }
+  }
+
+
+  /*runModelOnStreamFrames() async{
+    if(imgCamera != null)
+    {
+      var recognitions = await Tflite.runModelOnFrame(
+
+        bytesList: imgCamera.planes.map((plane)
+        {
+          return plane.bytes;
+        }).toList(),
+
+        imageHeight: imgCamera.height,
+        imageWidth: imgCamera.width,
+        imageMean: 127.5,
+        imageStd: 127.5,
+        rotation: 90,
+        numResults: 2,
+        threshold: 0.1,
+        asynch: true,
+      );
+      result="";
+
+      recognitions?.forEach((response)
+      {
+        result += response["label"] + "  " + (response["confidence"] as double).toStringAsFixed(2) + "\n\n";
+
+      });
+
+      setState((){
+        result;
+      });
+
+      isWorking = false;
+    }
+  }*/
+
   @override
-  void dispose() {
+  void dispose() async {
     _cameraController?.dispose();
     super.dispose();
+
+    await Tflite.close();
   }
 
   @override
@@ -171,3 +273,4 @@ class SoundWaveVisualizer extends StatelessWidget {
     );
   }
 }
+*/
