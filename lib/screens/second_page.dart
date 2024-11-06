@@ -6,6 +6,7 @@ import 'navigation_screen.dart';
 import 'object_recognition_screen.dart';
 import 'task_management_screen.dart';
 import 'freemium_model_screen.dart';
+import 'google_maps_screen.dart';
 
 class SecondPage extends StatefulWidget {
   const SecondPage({super.key});
@@ -64,7 +65,7 @@ class _SecondPageState extends State<SecondPage>
     await flutterTts.setPitch(1.0);
 
     setState(() {
-      isSpeaking = true; 
+      isSpeaking = true;
     });
 
     await flutterTts.speak(features);
@@ -117,6 +118,11 @@ class _SecondPageState extends State<SecondPage>
           context,
           MaterialPageRoute(builder: (context) => const FreemiumModelScreen()),
         );
+      case 'six':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const GoogleMapsScreen()),
+        );
         break;
       default:
         break;
@@ -152,7 +158,7 @@ class _SecondPageState extends State<SecondPage>
             }
 
             if (recognizedWords.isNotEmpty) {
-              if (['one', 'two', 'three', 'four', 'five']
+              if (['one', 'two', 'three', 'four', 'five', 'six']
                   .contains(recognizedWords)) {
                 speech.stop();
                 _navigateToFeature(recognizedWords);
@@ -179,9 +185,9 @@ class _SecondPageState extends State<SecondPage>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-   // if (!isSpeaking) {
-   //   _speakFeatures();
-   // }
+    // if (!isSpeaking) {
+    //   _speakFeatures();
+    // }
 
     setState(() {});
   }
@@ -291,6 +297,18 @@ class _SecondPageState extends State<SecondPage>
                     onTap: () => _navigateToFeature('five'),
                   ),
                   const SizedBox(height: 10),
+                  ListTile(
+                    leading: const Icon(Icons.monetization_on,
+                        color: Colors.deepPurple),
+                    title: const Text(
+                      'Maps',
+                      style:
+                          TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: const Text('Navigate Using Google Maps'),
+                    onTap: () => _navigateToFeature('six'),
+                  ),
+                  const SizedBox(height: 10),
                 ],
               ),
             ),
@@ -300,4 +318,3 @@ class _SecondPageState extends State<SecondPage>
     );
   }
 }
-
