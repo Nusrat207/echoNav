@@ -1,8 +1,8 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:tflite/tflite.dart';
 
 
+/*
 class ObjectRecognitionScreen extends StatefulWidget {
   const ObjectRecognitionScreen({super.key});
 
@@ -44,9 +44,9 @@ class _ObjectRecognitionScreenState extends State<ObjectRecognitionScreen> {
         setState(() {
           if(!isWorking) {
             isWorking = true;
-            _cameraController?.startImageStream((imageFromStream) => {
-            imgCamera = imageFromStream,
-            runModelOnStreamFrames(),
+            _cameraController?.startImageStream((imageFromStream) {
+            imgCamera = imageFromStream;
+            runModelOnStreamFrames();
           });
         }
         });
@@ -273,3 +273,4 @@ class SoundWaveVisualizer extends StatelessWidget {
     );
   }
 }
+*/
