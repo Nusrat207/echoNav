@@ -1,33 +1,43 @@
-import 'dart:io';
 import 'dart:typed_data';
-
-import 'package:face_auth/common/utils/extensions/size_extension.dart';
-import 'package:face_auth/constants/theme.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image_picker/image_picker.dart';
 
-class CameraView extends StatefulWidget {
-  const CameraView(
-      {Key? key, required this.onImage, required this.onInputImage})
-      : super(key: key);
+// Web-only imports
+import 'dart:html' as html;
 
-  final Function(Uint8List image) onImage;
-  final Function(InputImage inputImage) onInputImage;
+class CameraView extends StatefulWidget {
+  const CameraView({
+    Key? key,
+    required this.onImage,
+    required this.onInputImage,
+  }) : super(key: key);
+
+  final Function(Uint8List) onImage;
+  final Function(InputImage) onInputImage;
 
   @override
   State<CameraView> createState() => _CameraViewState();
 }
 
 class _CameraViewState extends State<CameraView> {
-  File? _image;
-  ImagePicker? _imagePicker;
+  final ImagePicker _picker = ImagePicker();
+  Uint8List? _imageBytes; // Change to Uint8List to hold image bytes
+
+  html.VideoElement? _videoElement;
+  html.CanvasElement? _canvasElement;
+  html.ImageElement? _imageElement;
 
   @override
   void initState() {
     super.initState();
-
-    _imagePicker = ImagePicker();
+    if (kIsWeb) {
+      _videoElement = html.VideoElement();
+      _canvasElement = html.CanvasElement(width: 400, height: 400);
+      _imageElement = html.ImageElement();
+      _initializeCamera();
+    }
   }
 
   @override
@@ -39,29 +49,30 @@ class _CameraViewState extends State<CameraView> {
           children: [
             Icon(
               Icons.camera_alt_outlined,
-              color: primaryWhite,
-              size: 0.038.sh,
+              color: Colors.white,
+              size: 30.0,
             ),
           ],
         ),
-        SizedBox(height: 0.025.sh),
-        _image != null
+        const SizedBox(height: 20.0),
+        _imageBytes != null
             ? CircleAvatar(
-                radius: 0.15.sh,
+                radius: 80.0,
                 backgroundColor: const Color(0xffD9D9D9),
-                backgroundImage: FileImage(_image!),
+                backgroundImage:
+                    MemoryImage(_imageBytes!), // Display image bytes
               )
             : CircleAvatar(
-                radius: 0.15.sh,
+                radius: 80.0,
                 backgroundColor: const Color(0xffD9D9D9),
                 child: Icon(
                   Icons.camera_alt,
-                  size: 0.09.sh,
+                  size: 50.0,
                   color: const Color(0xff2E2E2E),
                 ),
               ),
         GestureDetector(
-          onTap: _getImage,
+          onTap: kIsWeb ? _captureImageWeb : _captureImageMobile,
           child: Container(
             width: 60,
             height: 60,
@@ -71,7 +82,7 @@ class _CameraViewState extends State<CameraView> {
                 stops: [0.4, 0.65, 1],
                 colors: [
                   Color(0xffD9D9D9),
-                  primaryWhite,
+                  Colors.white,
                   Color(0xffD9D9D9),
                 ],
               ),
@@ -83,42 +94,94 @@ class _CameraViewState extends State<CameraView> {
           "Click here to Capture",
           style: TextStyle(
             fontSize: 14,
-            color: primaryWhite.withOpacity(0.6),
+            color: Colors.white.withOpacity(0.6),
           ),
         ),
       ],
     );
   }
 
-  Future _getImage() async {
-    setState(() {
-      _image = null;
-    });
-    final pickedFile = await _imagePicker?.pickImage(
-      source: ImageSource.camera,
-      maxWidth: 400,
-      maxHeight: 400,
-      // imageQuality: 50,
+  // Initialize camera for web
+  void _initializeCamera() async {
+    final stream = await html.window.navigator.mediaDevices!.getUserMedia(
+      {'video': true},
     );
-    if (pickedFile != null) {
-      _setPickedFile(pickedFile);
-    }
+    _videoElement!.srcObject = stream;
+    _videoElement!.autoplay = true;
     setState(() {});
   }
 
-  Future _setPickedFile(XFile? pickedFile) async {
-    final path = pickedFile?.path;
-    if (path == null) {
-      return;
+  // Capture image for mobile
+  Future<void> _captureImageMobile() async {
+    final pickedFile = await _picker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 400,
+      maxHeight: 400,
+    );
+
+    if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
+      setState(() {
+        _imageBytes = bytes;
+      });
+      _processImage(bytes);
     }
-    setState(() {
-      _image = File(path);
+  }
+
+  // Capture image for web
+  Future<void> _captureImageWeb() async {
+    final context = _canvasElement!.context2D;
+    context.drawImage(_videoElement!, 0, 0);
+    final imageData = _canvasElement!.toDataUrl('image/png');
+    _imageElement!.src = imageData;
+
+    final response = await html.window.fetch(imageData);
+    final blob = await response.blob();
+    final reader = html.FileReader();
+    reader.readAsArrayBuffer(blob);
+    reader.onLoadEnd.listen((_) {
+      final bytes = reader.result as Uint8List;
+      setState(() {
+        _imageBytes = bytes;
+      });
+      _processImage(bytes);
     });
+  }
 
-    Uint8List imageBytes = _image!.readAsBytesSync();
-    widget.onImage(imageBytes);
+  // Process the image and send it for ML model processing
+  void _processImage(Uint8List bytes) {
+    widget.onImage(bytes);
 
-    InputImage inputImage = InputImage.fromFilePath(path);
+    InputImage inputImage;
+
+    if (kIsWeb) {
+      inputImage = InputImage.fromBytes(
+        bytes: bytes,
+        inputImageData: InputImageData(
+          size: const Size(400, 400),
+          imageRotation: InputImageRotation.rotation0deg,
+          inputImageFormat: InputImageFormat.yuv420, // Use yuv420 for web
+          planeData: [],
+        ),
+      );
+    } else {
+      inputImage = InputImage.fromBytes(
+        bytes: bytes,
+        inputImageData: InputImageData(
+          size: const Size(400, 400),
+          imageRotation: InputImageRotation.rotation0deg,
+          inputImageFormat: InputImageFormat.nv21, // Use nv21 for mobile
+          planeData: [],
+        ),
+      );
+    }
+
     widget.onInputImage(inputImage);
+  }
+
+  @override
+  void dispose() {
+    _videoElement?.pause();
+    super.dispose();
   }
 }

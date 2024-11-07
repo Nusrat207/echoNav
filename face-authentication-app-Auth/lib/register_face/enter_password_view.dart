@@ -53,10 +53,11 @@ class EnterPasswordView extends StatelessWidget {
                       FocusScope.of(context).unfocus();
                       FirebaseFirestore.instance
                           .collection("password")
-                          .doc("PG0eZfMW5FfkOy5JCXuS")
+                          .doc("llqDS7XsUkWvJpLB9HJ1")
                           .get()
                           .then((snap) {
                         Password password = Password.fromJson(snap.data()!);
+                        print(password);
                         if (password.password == _controller.text.trim()) {
                           Navigator.of(context).push(
                             MaterialPageRoute(

@@ -8,16 +8,30 @@ import 'package:face_auth/register_face/enter_password_view.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 
-void main() {
+void main() async {
+  // Ensure that Flutter binding is initialized before Firebase is initialized
   WidgetsFlutterBinding.ensureInitialized();
-  Firebase.initializeApp();
+
+  // Initialize Firebase with custom options
+  await Firebase.initializeApp(
+    options: const FirebaseOptions(
+      apiKey: "AIzaSyDgqQKdBFW1wErH_Mtx2Jve89Vv219dvFA",
+      authDomain: "econav-6260a.firebaseapp.com",
+      projectId: "econav-6260a",
+      storageBucket: "econav-6260a.firebasestorage.app",
+      messagingSenderId: "772382923964",
+      appId: "1:772382923964:web:f9da92e1aa1dc47de904b9",
+      measurementId: "G-2HPS5ECK88",
+    ),
+  );
+
+  // Run your app after Firebase initialization
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
