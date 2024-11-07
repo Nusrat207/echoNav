@@ -106,10 +106,11 @@ class _SecondPageState extends State<SecondPage> {
         _speakOptions();
       });
     } else if (command.contains('object recognition') ||
-        command.contains('object')) {
+        command.contains('object') ||
+        command.contains('recognition')) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => ObjectRecognitionPage()),
+        MaterialPageRoute(builder: (context) => ObjectRecognitionScreen()),
       ).then((_) {
         _hasNavigated = false;
         _speakOptions();
