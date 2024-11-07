@@ -30,8 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_tts: ^4.0.2 # Update to the latest version
-  speech_to_text: ^7.0.0 # Update to the latest version
+   speech_to_text: ^6.6.2
+  flutter_tts: ^4.0.2
 
   web_socket_channel: ^3.0.1
   logging: 1.2.0

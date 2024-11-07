@@ -1,3 +1,21 @@
+//this template kept for testing the feature page
+import 'package:flutter/material.dart';
+
+class ObjectRecognitionPage extends StatelessWidget {
+  const ObjectRecognitionPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Object Recognition'),
+      ),
+      body: Center(
+        child: Text('Object Recognition Feature'),
+      ),
+    );
+  }
+}
 
 
 /*
