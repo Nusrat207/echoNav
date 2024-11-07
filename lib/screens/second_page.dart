@@ -6,6 +6,7 @@ import 'navigation_screen.dart';
 import 'object_recognition_screen.dart';
 import 'task_management_screen.dart';
 import 'freemium_model_screen.dart';
+import 'package:camera/camera.dart';
 
 class SecondPage extends StatefulWidget {
   const SecondPage({super.key});
@@ -103,7 +104,9 @@ class _SecondPageState extends State<SecondPage>
         Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (context) => const ObjectRecognitionScreen()),
+
+              builder: (context) => ObjectRecognitionScreen()),
+              //builder: (context) => const ObjectDetectionStream()),
         );
         break;
       case 'four':

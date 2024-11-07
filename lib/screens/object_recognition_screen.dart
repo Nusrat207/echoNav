@@ -1,4 +1,173 @@
+
+import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:image/image.dart' as imgLib;
+
+class ObjectRecognitionScreen extends StatefulWidget {
+  @override
+  _ObjectRecognitionScreenState createState() => _ObjectRecognitionScreenState();
+}
+
+class _ObjectRecognitionScreenState extends State<ObjectRecognitionScreen> {
+  CameraController? _cameraController;
+  List<CameraDescription>? cameras;
+  CameraImage? imgCamera;
+  bool isProcessing = false;
+  List<dynamic> detections = [];
+
+  @override
+  void initState() {
+    super.initState();
+    initializeCamera();
+  }
+
+  Future<void> initializeCamera() async {
+    try {
+      cameras = await availableCameras();
+      _cameraController = CameraController(cameras![0], ResolutionPreset.high);
+      await _cameraController!.initialize();
+
+      if (_cameraController!.value.isInitialized) {
+        setState(() {
+          _cameraController?.startImageStream((image) {
+            if (!isProcessing) {
+              isProcessing = true;
+              imgCamera = image;
+              processFrame(image);
+            }
+          });
+        });
+      }
+    } catch (e) {
+      print("Error initializing camera: $e");
+    }
+  }
+
+  Future<void> processFrame(CameraImage image) async {
+    final jpegBytes = await _convertImageToJpeg(image);
+    final base64Image = base64Encode(jpegBytes);
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://192.168.229.217:5000/detect'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"image": base64Image}),
+      );
+
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        setState(() {
+          detections = result['detections'];
+        });
+      }
+    } catch (e) {
+      print("Error: $e");
+    } finally {
+      isProcessing = false;
+    }
+  }
+
+  Future<Uint8List> _convertImageToJpeg(CameraImage image) async {
+    final img = imgLib.Image(image.width, image.height);
+    for (int y = 0; y < image.height; y++) {
+      for (int x = 0; x < image.width; x++) {
+        final uvIndex = (x ~/ 2) + (y ~/ 2) * image.planes[1].bytesPerRow;
+        final yp = image.planes[0].bytes[y * image.width + x];
+        final up = image.planes[1].bytes[uvIndex];
+        final vp = image.planes[2].bytes[uvIndex];
+        img.data[y * image.width + x] = _yuv2rgb(yp, up, vp);
+      }
+    }
+    return Uint8List.fromList(imgLib.encodeJpg(img));
+  }
+
+  int _yuv2rgb(int y, int u, int v) {
+    final r = (y + 1.370705 * (v - 128)).clamp(0, 255).toInt();
+    final g = (y - 0.337633 * (u - 128) - 0.698001 * (v - 128)).clamp(0, 255).toInt();
+    final b = (y + 1.732446 * (u - 128)).clamp(0, 255).toInt();
+    return (0xFF << 24) | (b << 16) | (g << 8) | r;
+  }
+
+  @override
+  void dispose() {
+    _cameraController?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Object Recognition"),
+      ),
+      body: Stack(
+        children: [
+          Positioned.fill(child: CameraPreview(_cameraController!)),
+
+          if(detections.isNotEmpty)
+          Positioned.fill(
+            child: CustomPaint(
+              painter: DetectionBoxesPainter(detections),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class DetectionBoxesPainter extends CustomPainter {
+  final List<dynamic> detections;
+
+  DetectionBoxesPainter(this.detections);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+
+    if(detections.isEmpty || detections == null) return;
+
+    final paintBox = Paint()..color = Colors.red..style = PaintingStyle.stroke..strokeWidth = 2.0;
+
+    for (var detection in detections) {
+      final bbox = detection['bounding_box'];
+      final rect = Rect.fromLTWH(
+        bbox['x'].toDouble(),
+        bbox['y'].toDouble(),
+        bbox['width'].toDouble(),
+        bbox['height'].toDouble(),
+      );
+      canvas.drawRect(rect, paintBox);
+
+      final label = detection['label'];
+      final distance = detection['distance'] ?? 'Unknown';
+      final textSpan = TextSpan(
+        text: "$label: ${distance}m",
+        style: TextStyle(color: Colors.white, fontSize: 14),
+      );
+
+      final textPainter = TextPainter(
+        text: textSpan,
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout();
+      textPainter.paint(canvas, Offset(bbox['x'].toDouble(), bbox['y'].toDouble() - 15));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+
+
+
+/*import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 
 
@@ -237,4 +406,4 @@ class SoundWaveVisualizer extends StatelessWidget {
       ),
     );
   }
-}
+}*/
