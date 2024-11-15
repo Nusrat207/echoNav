@@ -41,6 +41,7 @@ dependencies:
 
  
   camera: ^0.10.0+1
+  #camera: ^0.11.0+2
   image: ^3.0.1
 
   # The following adds the Cupertino Icons font to your application.
@@ -74,8 +75,6 @@ dev_dependencies:
 flutter:
   assets:
     - assets/image.jpg
-    - assets/mobilenet_v1_1.0_224.tflite
-    - assets/mobilenet_v1_1.0_224.txt
     - assets/
     - assets/images/
     - assets/map_style/
