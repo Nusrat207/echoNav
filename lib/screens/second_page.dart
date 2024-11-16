@@ -7,6 +7,7 @@ import 'object_recognition_screen.dart';
 import 'task_management_screen.dart';
 import 'freemium_model_screen.dart';
 import 'google_maps_screen.dart';
+import 'vision_page.dart';
 
 class SecondPage extends StatefulWidget {
   const SecondPage({super.key});
@@ -45,7 +46,7 @@ class _SecondPageState extends State<SecondPage> {
     _hasNavigated = false;
 
     String optionsText =
-        "The features are Voice Assistant, Navigation, Object Recognition, Task Management, and Freemium Model. Which one would you like to use?";
+        "The features are Voice Assistant, Navigation, Object Recognition, Vision, Task Management, and Freemium Model. Which one would you like to use?";
 
     await _flutterTts.speak(optionsText);
     await _flutterTts.awaitSpeakCompletion(true);
@@ -132,6 +133,14 @@ class _SecondPageState extends State<SecondPage> {
         _hasNavigated = false;
         _speakOptions();
       });
+    } else if (command.contains('vision')) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => VisionPage()),
+      ).then((_) {
+        _hasNavigated = false;
+        _speakOptions();
+      });
     } else {
       String x = "I didn't understand";
       //_flutterTts.speak(x);
@@ -212,6 +221,8 @@ class _SecondPageState extends State<SecondPage> {
                         "Object Recognition",
                         "Detect and identify objects using AI.",
                         "object recognition"),
+                    _buildFeatureTile(Icons.computer, "Vision",
+                        "See your surroundings using AI.", "vision"),
                     _buildFeatureTile(
                         Icons.task,
                         "Reminders and Task Management",
