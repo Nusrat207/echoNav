@@ -84,8 +84,9 @@ class _VisionPageState extends State<VisionPage> {
         String base64Image = base64Encode(imageBytes);
 
         // Prepare API request
-        // var url = Uri.parse("http://192.168.0.104:8000/api/ask"); // for physcial phone
-        var url = Uri.parse("http://10.0.2.2:8000/api/ask"); // for emulator
+        var url = Uri.parse(
+            "http://192.168.0.104:8000/api/ask"); // for physcial phone
+        //  var url = Uri.parse("http://10.0.2.2:8000/api/ask"); // for emulator
         var response = await http.post(
           url,
           headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -153,20 +154,35 @@ class _VisionPageState extends State<VisionPage> {
             const Center(child: CircularProgressIndicator()),
 
           // Display the voice command
+          // Voice command text with scroll
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Text(
-              "Voice Command: $_recognizedText",
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            child: SingleChildScrollView(
+              scrollDirection: Axis
+                  .horizontal, // To make the voice command scroll horizontally
+              child: Text(
+                "Voice Command: $_recognizedText",
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                maxLines: 2, // Limit the number of lines
+                overflow: TextOverflow.ellipsis, // Handle overflow gracefully
+              ),
             ),
           ),
 
-          // Display the backend response
+          // Backend response text with scroll
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Text(
-              "Response: $_responseText",
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            child: SingleChildScrollView(
+              scrollDirection:
+                  Axis.horizontal, // To make the response scroll horizontally
+              child: Text(
+                "Response: $_responseText",
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                maxLines: 2, // Limit the number of lines
+                overflow: TextOverflow.ellipsis, // Handle overflow gracefully
+              ),
             ),
           ),
 
