@@ -31,6 +31,7 @@ class _SecondPageState extends State<SecondPage> {
     _speechToText = stt.SpeechToText();
     _flutterTts = FlutterTts();
 
+
     _speakOptions();
   }
 
@@ -42,16 +43,30 @@ class _SecondPageState extends State<SecondPage> {
   }
 
   Future<void> _speakOptions() async {
+
+    print("reached speak options");
     isTtsSpeaking = true;
     _hasNavigated = false;
 
+    //ensure google tts is installed in your phone
+
+    print("Initializing FlutterTts...");
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+
     String optionsText =
         "The features are Voice Assistant, Navigation, Object Recognition, Vision, Task Management, and Freemium Model. Which one would you like to use?";
+    print(isTtsSpeaking);
 
     await _flutterTts.speak(optionsText);
     await _flutterTts.awaitSpeakCompletion(true);
 
+
+    print("speaking done!!!");
     if (isTtsSpeaking) {
+      print("VOICE SHOULD BE OUTPUTTING");
       captureVoice();
     }
   }

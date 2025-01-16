@@ -85,7 +85,7 @@ class _VisionPageState extends State<VisionPage> {
 
         // Prepare API request
         var url = Uri.parse(
-            "http://192.168.0.104:8000/api/ask"); // for physcial phone
+            "http://192.168.54.131:8000/api/ask"); // for physcial phone
         //  var url = Uri.parse("http://10.0.2.2:8000/api/ask"); // for emulator
         var response = await http.post(
           url,
