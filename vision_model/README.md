@@ -1,4 +1,7 @@
 # vision_model
+
+if virtul env isn't installed:
+pip install virtualenv
  
 to run the backend:
 ###
