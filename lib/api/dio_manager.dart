@@ -7,24 +7,24 @@ class DioManager {
   static Dio mainDio = Dio(BaseOptions(baseUrl: BaseUrl));
 
   static Options getOptions() => Options(
-        headers: {
-          'Authorization': 'Bearer',
-          "Content-Type": "application/json",
-          "Accept-Language": "en",
-        },
-        validateStatus: (_) => true,
-        contentType: "application/json",
-        responseType: ResponseType.json,
-        receiveTimeout: const Duration(seconds: 5),
-        sendTimeout: const Duration(seconds: 5),
-      );
+    headers: {
+      'Authorization': 'Bearer',
+      "Content-Type": "application/json",
+      "Accept-Language": "en",
+    },
+    validateStatus: (_) => true,
+    contentType: "application/json",
+    responseType: ResponseType.json,
+    receiveTimeout: const Duration(seconds: 5),
+    sendTimeout: const Duration(seconds: 5),
+  );
 
   ///POST Method
   static Future<Response?> post(
       {Dio? dio,
-      required String path,
-      required Map<String, dynamic>? body,
-      Map<String, dynamic>? parameters}) async {
+        required String path,
+        required Map<String, dynamic>? body,
+        Map<String, dynamic>? parameters}) async {
     dio ??= mainDio;
     final options = getOptions();
     try {
@@ -53,7 +53,7 @@ class DioManager {
       Logger.log(
           'we are getting ${dio.options.baseUrl + path}:\n with param $parameters with header ${options.headers}');
       final response =
-          await dio.get(path, queryParameters: parameters, options: options);
+      await dio.get(path, queryParameters: parameters, options: options);
       //final responseBody = json.decode(response.body);
       Logger.log(
           'Response of getting ${dio.options.baseUrl + path}:\n ${response.data}');
