@@ -32,6 +32,9 @@ dependencies:
     sdk: flutter
   # speech_to_text: ^6.6.2
   # flutter_tts: ^4.0.2
+  geolocator: ^10.1.0
+  langchain: ^0.0.4
+  langchain_google: ^0.0.4
 
   web_socket_channel: ^3.0.1
   logging: 1.2.0
@@ -46,6 +49,7 @@ dependencies:
   flutter_tts: ^3.6.0
   permission_handler: ^10.2.0
   http: ^1.1.0
+  path_provider: ^2.1.1
 
 
   # camera: ^0.10.0+1
@@ -62,6 +66,7 @@ dependencies:
   # state management
   bloc: ^8.1.4
   flutter_bloc: ^8.1.5
+
   # dio: ^5.4.3+1
 
   audioplayers: ^6.1.2

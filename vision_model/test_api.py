@@ -6,7 +6,7 @@ url = "http://127.0.0.1:8000/api/ask"
 
 # Test data
 prompt = "What is in front of me? And how do I navigate this place"
-image_path = r"C:/Users/User/flutter projects/ag/echoNav/vision_model/room.jpg"  # Update with the correct path
+image_path = r"./room.jpg"  # Update with the correct path
 
 # Read the image and encode it to base64
 with open(image_path, "rb") as img_file:

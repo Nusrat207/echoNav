@@ -1,17 +1,47 @@
-import '/models/api_result_model.dart';
-import '/api/dio_manager.dart';
+import 'package:dio/dio.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'dio_manager.dart';
+import '../models/api_result_model.dart';
 
 class API {
-  ///Map APIs
-  static const String GET_COORDINATES_URL = 'maps.googleapis.com';
-  static const String GET_COORDINATES_PATH = '/maps/api/directions/json';
+  static const String directionsPath = '/directions/json';
+  static const String geocodePath = '/geocode/json';
 
-  ///Authentication APIs
-  static Future<APIResultModel> getRouteCoordinates(dynamic parameters) async {
-    print(parameters);
-    return APIResultModel.fromResponse(
-        response: await DioManager.get(
-            path: GET_COORDINATES_PATH, parameters: parameters),
-        data: null);
+  static Future<APIResultModel> getRouteCoordinates({
+    required LatLng origin,
+    required LatLng destination,
+    required String apiKey,
+  }) async {
+    try {
+      final response = await DioManager.get(
+        path: directionsPath,
+        parameters: {
+          'origin': '${origin.latitude},${origin.longitude}',
+          'destination': '${destination.latitude},${destination.longitude}',
+          'mode': 'walking',
+          'key': apiKey,
+        },
+      );
+
+      if (response?.statusCode == 200) {
+        return APIResultModel(
+          success: true,
+          message: 'Route fetched successfully',
+          data: response?.data,
+        );
+      } else {
+        return APIResultModel(
+          success: false,
+          message: 'Failed to fetch route',
+          data: null,
+        );
+      }
+    } catch (e) {
+      return APIResultModel(
+        success: false,
+        message: 'Error: $e',
+        data: null,
+      );
+    }
   }
 }
