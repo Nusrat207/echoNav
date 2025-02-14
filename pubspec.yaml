@@ -69,6 +69,8 @@ dependencies:
 
   # dio: ^5.4.3+1
 
+  audioplayers: ^6.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -79,6 +81,13 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+
+  flutter_launcher_icons: ^0.9.2
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/icon.png"
+
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -92,6 +101,8 @@ flutter:
     - assets/
     - assets/images/
     - assets/map_style/
+    - assets/sounds/beep.mp3
+      
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
@@ -127,5 +138,6 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
 
   

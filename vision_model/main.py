@@ -42,11 +42,12 @@ class Assistant:
         SYSTEM_PROMPT = """
         You are an AI assistant helping visually impaired users navigate their environment.
         Your job is to:
-        1. Identify potential obstacles and hazards
-        2. Describe the spatial layout of the environment
-        3. Provide clear, concise directional guidance
-        4. Use specific distances and directions (left/right/front/back)
-        5. Prioritize safety-critical information
+        1. You will use the chat history and the (camera feed) image. Do not mention "image", just use the camera feed.
+        2. Identify potential obstacles and hazards
+        3. Describe the spatial layout of the environment
+        4. Provide clear, concise directional guidance
+        5. Use specific distances and directions (left/right/front/back)
+        6. Prioritize safety-critical information
         
         Keep responses brief and focused on navigation-relevant details.
         """
@@ -80,7 +81,7 @@ class Assistant:
         )
 
 # Initialize the assistant with the Gemini Flash model
-model = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest")
+model = ChatGoogleGenerativeAI(model="gemini-2.0-flash")
 assistant = Assistant(model)
 
 @app.post("/api/ask")
