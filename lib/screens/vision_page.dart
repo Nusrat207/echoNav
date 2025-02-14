@@ -64,10 +64,15 @@ class _VisionPageState extends State<VisionPage> {
           setState(() {
             _recognizedText = result.recognizedWords; // Update recognized text
           });
-          // If the result is final, send the frame to the backend
+
+          // If the result is final and recognized text is empty, restart listening
           if (result.finalResult) {
-            _stopListening(); // Stop current listening
-            _sendFrameToBackend(); // Send the frame to the backend
+            if (_recognizedText.isEmpty) {
+              _startListening(); // Restart listening if no speech was recognized
+            } else {
+              _stopListening(); // Stop current listening
+              _sendFrameToBackend(); // Send the frame to the backend
+            }
           }
         },
         listenOptions: stt.SpeechListenOptions(
