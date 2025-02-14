@@ -58,9 +58,11 @@ class _VisionPageState extends State<VisionPage> {
           setState(() {
             _recognizedText = result.recognizedWords; // Update recognized text
           });
-          // Restart listening if the result is final
+          // If the result is final, send the frame to the backend
           if (result.finalResult) {
             _stopListening(); // Stop current listening
+            _sendFrameToBackend(); // Send the frame to the backend
+            _stopListening();
             _startListening(); // Start listening again
           }
         },
@@ -95,7 +97,7 @@ class _VisionPageState extends State<VisionPage> {
 
         // Prepare API request
         var url = Uri.parse(
-            "http://192.168.0.104:8000/api/ask"); // for physcial phone
+            "http://192.168.0.103:8000/api/ask"); // for physcial phone
         //  var url = Uri.parse("http://10.0.2.2:8000/api/ask"); // for emulator
         var response = await http.post(
           url,
