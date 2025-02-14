@@ -26,7 +26,7 @@
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
 
     <application
-        android:label="first_pro"
+        android:label="EchoNav"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         tools:replace="android:icon, android:label">

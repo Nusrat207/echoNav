@@ -42,7 +42,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    
+
     _timer = Timer(const Duration(seconds: 5), () {
       _navigateToNextPage();
     });
@@ -50,7 +50,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void dispose() {
-    _timer?.cancel(); 
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -111,7 +111,8 @@ class _MyHomePageState extends State<MyHomePage> {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF610A8A),
-                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 50, vertical: 12),
                 textStyle: const TextStyle(fontSize: 24),
               ),
               child: const Text(
@@ -127,4 +128,4 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
-} 
+}

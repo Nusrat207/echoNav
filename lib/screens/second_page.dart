@@ -8,6 +8,7 @@ import 'task_management_screen.dart';
 import 'freemium_model_screen.dart';
 import 'google_maps_screen.dart';
 import 'vision_page.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class SecondPage extends StatefulWidget {
   const SecondPage({super.key});
@@ -24,6 +25,7 @@ class _SecondPageState extends State<SecondPage> {
   late FlutterTts _flutterTts;
   String text = "Press the button & speak";
   double confidence = 1.0;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
@@ -31,8 +33,22 @@ class _SecondPageState extends State<SecondPage> {
     _speechToText = stt.SpeechToText();
     _flutterTts = FlutterTts();
 
+    // Restart or reinitialize TTS and STT
+    _flutterTts.stop(); // Ensure TTS is stopped before reinitializing
+    _speechToText.stop(); // Ensure STT is stopped before reinitializing
 
-    _speakOptions();
+    // Reinitialize TTS and STT
+    _flutterTts = FlutterTts();
+    _speechToText = stt.SpeechToText();
+
+    // Ensure TTS and STT are initialized before starting
+    _flutterTts.setCompletionHandler(() async {
+      await _playBeepSound(); // Play beep sound after TTS is done
+      captureVoice(); // Start capturing voice after beep
+    });
+
+    _speakOptions(); // Directly call to speak options
+
   }
 
   @override
@@ -71,6 +87,10 @@ class _SecondPageState extends State<SecondPage> {
     }
   }
 
+  Future<void> _playBeepSound() async {
+    await _audioPlayer.play(AssetSource('assets/sounds/beep.mp3'));
+  }
+
   void captureVoice() async {
     if (!isListening && isTtsSpeaking) {
       bool available = await _speechToText.initialize();
@@ -93,6 +113,8 @@ class _SecondPageState extends State<SecondPage> {
         await Future.delayed(Duration(seconds: 6));
         _speechToText.stop();
         setState(() => isListening = false);
+      } else {
+        print("Speech recognition not available");
       }
     }
   }
