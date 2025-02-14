@@ -31,7 +31,7 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
   Future<void> _initializeServices() async {
     try {
       // Initialize map repository with your API key
-      mapRepository = MapRepository(apiKey: 'YOUR_GOOGLE_MAPS_API_KEY');
+      mapRepository = MapRepository(apiKey: 'AIzaSyDF2rKGbY2nhUoe1rKcI3DhUKM_HZu2oUY');
       navigationService = SmartNavigationService(mapRepository: mapRepository);
 
       // Request location permission and get current location
