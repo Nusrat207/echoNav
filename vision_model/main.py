@@ -40,10 +40,11 @@ class Assistant:
 
     def _create_inference_chain(self, model):
         SYSTEM_PROMPT = """
-        You are a witty assistant that will use the chat history and the image 
+        You are a witty assistant that will use the chat history and the (camera feed) image
         provided by the user to answer its questions. Your job is to help blind people know what's in front of them.
         Always describe in terms of left and right using proper directions. 
         Always mention approximately how far away different objects are.
+        Always provide clear and concise answers. Ask at the end if the user needs any more information.
         Do not use any emoticons or emojis.
         """
 
@@ -76,7 +77,7 @@ class Assistant:
         )
 
 # Initialize the assistant with the Gemini Flash model
-model = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest")
+model = ChatGoogleGenerativeAI(model="gemini-2.0-flash")
 assistant = Assistant(model)
 
 @app.post("/api/ask")

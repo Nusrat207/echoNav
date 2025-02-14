@@ -5,6 +5,7 @@ import 'package:camera/camera.dart';
 import 'package:http/http.dart' as http;
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:image/image.dart' as img;
 
 class VisionPage extends StatefulWidget {
   const VisionPage({super.key});
@@ -94,39 +95,47 @@ class _VisionPageState extends State<VisionPage> {
           _imageFile = imageFile;
         });
 
-        // Read image bytes and convert to base64
+        // Read image bytes
         Uint8List imageBytes = await imageFile.readAsBytes();
-        String base64Image = base64Encode(imageBytes);
 
-        // Prepare API request
-        var url = Uri.parse(
-            "http://192.168.0.103:8000/api/ask"); // for physcial phone
-        //  var url = Uri.parse("http://10.0.2.2:8000/api/ask"); // for emulator
-        var response = await http.post(
-          url,
-          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-          body: {
-            'prompt': _recognizedText,
-            'image': base64Image,
-          },
-        );
+        // Compress the image
+        img.Image? originalImage = img.decodeImage(imageBytes);
+        if (originalImage != null) {
+          img.Image compressedImage = img.copyResize(originalImage,
+              width: 800); // Resize to 800px width
+          Uint8List compressedBytes = Uint8List.fromList(img.encodeJpg(
+              compressedImage,
+              quality: 70)); // Compress with 70% quality
 
-        if (response.statusCode == 200) {
-          // Parse and display the response
-          var data = json.decode(response.body);
-          String responseText = data['response'];
+          // Convert to base64
+          String base64Image = base64Encode(compressedBytes);
 
-          setState(() {
-            _responseText = responseText;
-          });
+          // Prepare API request
+          var url = Uri.parse("http://192.168.0.103:8000/api/ask");
+          var response = await http.post(
+            url,
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: {
+              'prompt': _recognizedText,
+              'image': base64Image,
+            },
+          );
 
-          // Convert response to speech
-          _flutterTts.speak(responseText).then((_) {
-            _startListening(); // Restart listening after TTS is done
-          });
-        } else {
-          print("Failed to send request: ${response.statusCode}");
-          print("Response body: ${response.body}");
+          if (response.statusCode == 200) {
+            var data = json.decode(response.body);
+            String responseText = data['response'];
+
+            setState(() {
+              _responseText = responseText;
+            });
+
+            _flutterTts.speak(responseText).then((_) {
+              _startListening(); // Restart listening after TTS is done
+            });
+          } else {
+            print("Failed to send request: ${response.statusCode}");
+            print("Response body: ${response.body}");
+          }
         }
       }
     } catch (e) {
