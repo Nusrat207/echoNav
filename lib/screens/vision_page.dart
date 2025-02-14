@@ -51,13 +51,23 @@ class _VisionPageState extends State<VisionPage> {
     bool available = await _speechToText.initialize();
     if (available) {
       setState(() {
-        _isListening = true;
+        _isListening = true; // Set to true when listening starts
       });
-      _speechToText.listen(onResult: (result) {
-        setState(() {
-          _recognizedText = result.recognizedWords;
-        });
-      });
+      _speechToText.listen(
+        onResult: (result) {
+          setState(() {
+            _recognizedText = result.recognizedWords; // Update recognized text
+          });
+          // Restart listening if the result is final
+          if (result.finalResult) {
+            _stopListening(); // Stop current listening
+            _startListening(); // Start listening again
+          }
+        },
+        listenOptions: stt.SpeechListenOptions(
+          cancelOnError: true, // Automatically stop on error
+        ),
+      );
     }
   }
 
