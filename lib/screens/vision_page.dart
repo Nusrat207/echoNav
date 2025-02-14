@@ -32,6 +32,11 @@ class _VisionPageState extends State<VisionPage> {
     _initializeCamera();
     _speechToText = stt.SpeechToText();
     _flutterTts = FlutterTts();
+
+    // Speak the initial greeting and start listening afterward
+    _flutterTts.speak("How May I help you today?").then((_) {
+      _startListening(); // Start listening after TTS is done
+    });
   }
 
   // Initialize the camera
