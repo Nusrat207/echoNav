@@ -149,78 +149,71 @@ class _VisionPageState extends State<VisionPage> {
       ),
       body: Column(
         children: [
-          // Camera preview
-
-          // if (isCameraInitialized)
-          //   AspectRatio(
-          //     aspectRatio: _cameraController.value.aspectRatio,
-          //     child: CameraPreview(_cameraController),
-          //   )
-
+          // Enlarge the camera preview with flexible space
           if (isCameraInitialized)
-            Container(
-              width: double.infinity, // Ensure the container takes full width
-              height: MediaQuery.of(context).size.height *
-                  0.6, // Adjust height as needed
-              child: AspectRatio(
-                aspectRatio: _cameraController.value.aspectRatio,
-                child: CameraPreview(_cameraController),
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                child: AspectRatio(
+                  aspectRatio: _cameraController.value.aspectRatio,
+                  child: CameraPreview(_cameraController),
+                ),
               ),
             )
           else
             const Center(child: CircularProgressIndicator()),
 
-          // Display the voice command
-          // Voice command text with scroll
+          // Voice command and response text
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: SingleChildScrollView(
-              scrollDirection: Axis
-                  .horizontal, // To make the voice command scroll horizontally
+              scrollDirection: Axis.horizontal,
               child: Text(
                 "Voice Command: $_recognizedText",
                 style:
                     const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                maxLines: 2, // Limit the number of lines
-                overflow: TextOverflow.ellipsis, // Handle overflow gracefully
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ),
-
-          // Backend response text with scroll
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: SingleChildScrollView(
-              scrollDirection:
-                  Axis.horizontal, // To make the response scroll horizontally
+              scrollDirection: Axis.horizontal,
               child: Text(
                 "Response: $_responseText",
                 style:
                     const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                maxLines: 2, // Limit the number of lines
-                overflow: TextOverflow.ellipsis, // Handle overflow gracefully
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ),
 
-          // Start/Stop listening and Send to Backend buttons
+          // Smaller buttons with icons
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               ElevatedButton(
                 onPressed: _isListening ? _stopListening : _startListening,
-                child:
-                    Text(_isListening ? "Stop Listening" : "Start Listening"),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.all(8.0), // Smaller padding
+                ),
+                child: Icon(_isListening ? Icons.stop : Icons.mic),
               ),
               const SizedBox(width: 20),
               ElevatedButton(
                 onPressed: _sendFrameToBackend,
-                child: const Text("Send to Backend"),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.all(8.0), // Smaller padding
+                ),
+                child: const Icon(Icons.send),
               ),
             ],
           ),
 
-          // Display a loading indicator if the app is listening
+          // Loading indicator if listening
           if (_isListening)
             const Padding(
               padding: EdgeInsets.all(8.0),
