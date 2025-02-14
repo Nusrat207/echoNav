@@ -1,48 +1,45 @@
 import 'package:dio/dio.dart';
-import '../models/api_result_model.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dio_manager.dart';
+import '../models/api_result_model.dart';
 
 class API {
-  static const String baseUrl = 'maps.googleapis.com';
-  static const String directionsPath = '/maps/api/directions/json';
-  static const String geocodePath = '/maps/api/geocode/json';
-  static const String placesPath = '/maps/api/place/autocomplete/json';
+  static const String directionsPath = '/directions/json';
+  static const String geocodePath = '/geocode/json';
 
-  static Future<APIResultModel> getRouteCoordinates(Map<String, dynamic> parameters) async {
+  static Future<APIResultModel> getRouteCoordinates({
+    required LatLng origin,
+    required LatLng destination,
+    required String apiKey,
+  }) async {
     try {
       final response = await DioManager.get(
         path: directionsPath,
-        parameters: parameters,
+        parameters: {
+          'origin': '${origin.latitude},${origin.longitude}',
+          'destination': '${destination.latitude},${destination.longitude}',
+          'mode': 'walking',
+          'key': apiKey,
+        },
       );
 
-      return APIResultModel.fromResponse(
-        response: response,
-        data: null,
-      );
+      if (response?.statusCode == 200) {
+        return APIResultModel(
+          success: true,
+          message: 'Route fetched successfully',
+          data: response?.data,
+        );
+      } else {
+        return APIResultModel(
+          success: false,
+          message: 'Failed to fetch route',
+          data: null,
+        );
+      }
     } catch (e) {
       return APIResultModel(
         success: false,
-        message: 'Failed to get route coordinates: $e',
-        data: null,
-      );
-    }
-  }
-
-  static Future<APIResultModel> geocodeAddress(Map<String, dynamic> parameters) async {
-    try {
-      final response = await DioManager.get(
-        path: geocodePath,
-        parameters: parameters,
-      );
-
-      return APIResultModel.fromResponse(
-        response: response,
-        data: null,
-      );
-    } catch (e) {
-      return APIResultModel(
-        success: false,
-        message: 'Failed to geocode address: $e',
+        message: 'Error: $e',
         data: null,
       );
     }
