@@ -116,7 +116,7 @@ class _VisionPageState extends State<VisionPage> {
           String base64Image = base64Encode(compressedBytes);
 
           // Prepare API request
-          var url = Uri.parse("http://192.168.0.103:8000/api/ask");
+          var url = Uri.parse("http://192.168.238.97:8000/api/ask");
           var response = await http.post(
             url,
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},

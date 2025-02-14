@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../repositories/map_repository.dart';
 
+/*
 class SearchBarWidget extends StatefulWidget {
   final Function(String) onSearch;
   final MapRepository mapRepository;
@@ -121,3 +122,4 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
     super.dispose();
   }
 }
+*/

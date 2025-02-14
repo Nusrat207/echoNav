@@ -1,75 +1,61 @@
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import '../models/api_result_model.dart';
 import '../api/api.dart';
+import '../models/api_result_model.dart';
 
 class MapRepository {
   final String apiKey;
-  final String baseUrl = 'https://maps.googleapis.com/maps/api';
 
   MapRepository({required this.apiKey});
 
-  Future<APIResultModel> getRouteCoordinates(LatLng origin, LatLng destination, {String mode = 'walking'}) async {
+  Future<List<LatLng>> getRoutePoints(LatLng origin, LatLng destination) async {
     try {
-      final params = {
-        'origin': '${origin.latitude},${origin.longitude}',
-        'destination': '${destination.latitude},${destination.longitude}',
-        'mode': mode,
-        'alternatives': 'true',
-        'key': apiKey,
-      };
+      final result = await API.getRouteCoordinates(
+        origin: origin,
+        destination: destination,
+        apiKey: apiKey,
+      );
 
-      return await API.getRouteCoordinates(params);
-    } catch (e) {
-      throw MapRepositoryException('Failed to get route coordinates: $e');
-    }
-  }
-
-  Future<LatLng> geocodeAddress(String address) async {
-    try {
-      final encodedAddress = Uri.encodeComponent(address);
-      final url = '$baseUrl/geocode/json?address=$encodedAddress&key=$apiKey';
-
-      final response = await http.get(Uri.parse(url));
-      final data = json.decode(response.body);
-
-      if (data['status'] != 'OK') {
-        throw MapRepositoryException('Geocoding failed: ${data['status']}');
+      if (result.success && result.data != null) {
+        final routes = result.data['routes'] as List;
+        if (routes.isNotEmpty) {
+          final points = _decodePolyline(
+            routes[0]['overview_polyline']['points'] as String,
+          );
+          return points;
+        }
       }
-
-      final location = data['results'][0]['geometry']['location'];
-      return LatLng(location['lat'], location['lng']);
+      return [];
     } catch (e) {
-      throw MapRepositoryException('Geocoding failed: $e');
-    }
-  }
-
-  Future<List<String>> getPlacePredictions(String input) async {
-    try {
-      final url = '$baseUrl/place/autocomplete/json?input=$input&key=$apiKey&types=address';
-
-      final response = await http.get(Uri.parse(url));
-      final data = json.decode(response.body);
-
-      if (data['status'] != 'OK') {
-        return [];
-      }
-
-      return (data['predictions'] as List)
-          .map((prediction) => prediction['description'] as String)
-          .toList();
-    } catch (e) {
-      print('Error getting place predictions: $e');
+      print('Error getting route points: $e');
       return [];
     }
   }
-}
 
-class MapRepositoryException implements Exception {
-  final String message;
-  MapRepositoryException(this.message);
+  List<LatLng> _decodePolyline(String encoded) {
+    List<LatLng> points = [];
+    int index = 0, len = encoded.length;
+    int lat = 0, lng = 0;
 
-  @override
-  String toString() => message;
+    while (index < len) {
+      int b, shift = 0, result = 0;
+      do {
+        b = encoded.codeUnitAt(index++) - 63;
+        result |= (b & 0x1F) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      lat += (result & 1) != 0 ? ~(result >> 1) : (result >> 1);
+
+      shift = 0;
+      result = 0;
+      do {
+        b = encoded.codeUnitAt(index++) - 63;
+        result |= (b & 0x1F) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      lng += (result & 1) != 0 ? ~(result >> 1) : (result >> 1);
+
+      points.add(LatLng(lat / 1E5, lng / 1E5));
+    }
+    return points;
+  }
 }

@@ -10,7 +10,7 @@ import 'package:http/http.dart' as http;
 import '../repositories/map_repository.dart';
 
 
-
+/*
 class SmartNavigationService {
   final FlutterTts flutterTts = FlutterTts();
   final MapRepository mapRepository;
@@ -316,3 +316,4 @@ class SmartNavigationService {
     flutterTts.stop();
   }
 }
+*/
