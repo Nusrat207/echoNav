@@ -62,8 +62,6 @@ class _VisionPageState extends State<VisionPage> {
           if (result.finalResult) {
             _stopListening(); // Stop current listening
             _sendFrameToBackend(); // Send the frame to the backend
-            _stopListening();
-            _startListening(); // Start listening again
           }
         },
         listenOptions: stt.SpeechListenOptions(
@@ -118,7 +116,9 @@ class _VisionPageState extends State<VisionPage> {
           });
 
           // Convert response to speech
-          _flutterTts.speak(responseText);
+          _flutterTts.speak(responseText).then((_) {
+            _startListening(); // Restart listening after TTS is done
+          });
         } else {
           print("Failed to send request: ${response.statusCode}");
           print("Response body: ${response.body}");
