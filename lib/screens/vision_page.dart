@@ -214,11 +214,11 @@ class _VisionPageState extends State<VisionPage> {
           ),
 
           // Loading indicator if listening
-          if (_isListening)
-            const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: CircularProgressIndicator(),
-            ),
+          // if (_isListening)
+          //   const Padding(
+          //     padding: EdgeInsets.all(8.0),
+          //     child: CircularProgressIndicator(),
+          //   ),
         ],
       ),
     );
