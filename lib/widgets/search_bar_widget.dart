@@ -1,6 +1,4 @@
 // search_bar_widget.dart
-import 'package:flutter/material.dart';
-import '../repositories/map_repository.dart';
 
 /*
 class SearchBarWidget extends StatefulWidget {

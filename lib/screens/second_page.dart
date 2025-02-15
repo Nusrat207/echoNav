@@ -2,7 +2,6 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'voice_ass.dart';
-import 'navigation_screen.dart';
 import 'object_recognition_screen.dart';
 import 'task_management_screen.dart';
 import 'freemium_model_screen.dart';
@@ -48,7 +47,6 @@ class _SecondPageState extends State<SecondPage> {
     });
 
     _speakOptions(); // Directly call to speak options
-
   }
 
   @override
@@ -59,7 +57,6 @@ class _SecondPageState extends State<SecondPage> {
   }
 
   Future<void> _speakOptions() async {
-
     print("reached speak options");
     isTtsSpeaking = true;
     _hasNavigated = false;
@@ -78,7 +75,6 @@ class _SecondPageState extends State<SecondPage> {
 
     await _flutterTts.speak(optionsText);
     await _flutterTts.awaitSpeakCompletion(true);
-
 
     print("speaking done!!!");
     if (isTtsSpeaking) {

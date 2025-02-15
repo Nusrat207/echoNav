@@ -6,6 +6,8 @@ import 'dart:typed_data';
 import 'package:image/image.dart' as imgLib;
 
 class ObjectRecognitionScreen extends StatefulWidget {
+  const ObjectRecognitionScreen({super.key});
+
   @override
   _ObjectRecognitionScreenState createState() =>
       _ObjectRecognitionScreenState();
@@ -129,7 +131,7 @@ class DetectionBoxesPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (detections.isEmpty || detections == null) return;
+    if (detections.isEmpty) return;
 
     final paintBox = Paint()
       ..color = Colors.red

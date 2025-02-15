@@ -1,13 +1,3 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:math';
-import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:flutter_tts/flutter_tts.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:camera/camera.dart';
-import 'package:http/http.dart' as http;
-import '../repositories/map_repository.dart';
 
 
 /*

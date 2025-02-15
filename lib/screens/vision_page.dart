@@ -166,7 +166,7 @@ class _VisionPageState extends State<VisionPage> {
           // Enlarge the camera preview with flexible space
           if (isCameraInitialized)
             Expanded(
-              child: Container(
+              child: SizedBox(
                 width: double.infinity,
                 child: AspectRatio(
                   aspectRatio: _cameraController.value.aspectRatio,
