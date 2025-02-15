@@ -1,6 +1,5 @@
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../api/api.dart';
-import '../models/api_result_model.dart';
 
 class MapRepository {
   final String apiKey;
