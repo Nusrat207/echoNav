@@ -147,15 +147,22 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
       final image = await _cameraController.takePicture();
       final bytes = await image.readAsBytes();
       final base64Image = base64Encode(bytes);
+      String prompt =
+          'current_location:${_currentLocation?.latitude},${_currentLocation?.longitude},destination:${_destination?.latitude},${_destination?.longitude}';
 
       final response = await http.post(
-        Uri.parse('http://192.168.238.97:8000/api/ask'),
+        Uri.parse('http://192.168.0.103:8000/api/ask'),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {
+          'prompt': prompt + _recognizedText,
           'image': base64Image,
-          'current_location':
-              '${_currentLocation?.latitude},${_currentLocation?.longitude}',
-          'destination': '${_destination?.latitude},${_destination?.longitude}',
         },
+        // body: {
+        //   'image': base64Image,
+        //   'current_location':
+        //       '${_currentLocation?.latitude},${_currentLocation?.longitude}',
+        //   'destination': '${_destination?.latitude},${_destination?.longitude}',
+        // },
       );
 
       if (response.statusCode == 200) {
