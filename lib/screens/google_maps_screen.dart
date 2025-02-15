@@ -148,7 +148,7 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
       final bytes = await image.readAsBytes();
       final base64Image = base64Encode(bytes);
       String prompt =
-          'current_location:${_currentLocation?.latitude},${_currentLocation?.longitude},destination:${_destination?.latitude},${_destination?.longitude}';
+          'This is my location data, tell me how can I go to this destination: current_location:${_currentLocation?.latitude},${_currentLocation?.longitude},destination:${_destination?.latitude},${_destination?.longitude}';
 
       final response = await http.post(
         Uri.parse('http://192.168.0.103:8000/api/ask'),
@@ -168,9 +168,12 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
-          _navigationInstructions = data['instructions'];
+          _navigationInstructions = data['response'];
         });
         await _tts.speak(_navigationInstructions);
+      } else {
+        print("Failed to send request: ${response.statusCode}");
+        print("Response body: ${response.body}");
       }
     } catch (e) {
       print('Error processing camera image: $e');
