@@ -2,11 +2,12 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'voice_ass.dart';
-import 'navigation_screen.dart';
 import 'object_recognition_screen.dart';
 import 'task_management_screen.dart';
 import 'freemium_model_screen.dart';
 import 'google_maps_screen.dart';
+import 'vision_page.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class SecondPage extends StatefulWidget {
   const SecondPage({super.key});
@@ -23,6 +24,7 @@ class _SecondPageState extends State<SecondPage> {
   late FlutterTts _flutterTts;
   String text = "Press the button & speak";
   double confidence = 1.0;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
@@ -30,7 +32,21 @@ class _SecondPageState extends State<SecondPage> {
     _speechToText = stt.SpeechToText();
     _flutterTts = FlutterTts();
 
-    _speakOptions();
+    // Restart or reinitialize TTS and STT
+    _flutterTts.stop(); // Ensure TTS is stopped before reinitializing
+    _speechToText.stop(); // Ensure STT is stopped before reinitializing
+
+    // Reinitialize TTS and STT
+    _flutterTts = FlutterTts();
+    _speechToText = stt.SpeechToText();
+
+    // Ensure TTS and STT are initialized before starting
+    _flutterTts.setCompletionHandler(() async {
+      await _playBeepSound(); // Play beep sound after TTS is done
+      captureVoice(); // Start capturing voice after beep
+    });
+
+    _speakOptions(); // Directly call to speak options
   }
 
   @override
@@ -41,18 +57,34 @@ class _SecondPageState extends State<SecondPage> {
   }
 
   Future<void> _speakOptions() async {
+    print("reached speak options");
     isTtsSpeaking = true;
     _hasNavigated = false;
 
+    //ensure google tts is installed in your phone
+
+    print("Initializing FlutterTts...");
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+
     String optionsText =
-        "The features are Voice Assistant, Navigation, Object Recognition, Task Management, and Freemium Model. Which one would you like to use?";
+        "The features are Voice Assistant, Navigation, Object Recognition, Vision, Task Management, and Freemium Model. Which one would you like to use?";
+    print(isTtsSpeaking);
 
     await _flutterTts.speak(optionsText);
     await _flutterTts.awaitSpeakCompletion(true);
 
+    print("speaking done!!!");
     if (isTtsSpeaking) {
+      print("VOICE SHOULD BE OUTPUTTING");
       captureVoice();
     }
+  }
+
+  Future<void> _playBeepSound() async {
+    await _audioPlayer.play(AssetSource('assets/sounds/beep.mp3'));
   }
 
   void captureVoice() async {
@@ -77,6 +109,8 @@ class _SecondPageState extends State<SecondPage> {
         await Future.delayed(Duration(seconds: 6));
         _speechToText.stop();
         setState(() => isListening = false);
+      } else {
+        print("Speech recognition not available");
       }
     }
   }
@@ -128,6 +162,14 @@ class _SecondPageState extends State<SecondPage> {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => FreemiumModelScreen()),
+      ).then((_) {
+        _hasNavigated = false;
+        _speakOptions();
+      });
+    } else if (command.contains('vision')) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => VisionPage()),
       ).then((_) {
         _hasNavigated = false;
         _speakOptions();
@@ -212,6 +254,8 @@ class _SecondPageState extends State<SecondPage> {
                         "Object Recognition",
                         "Detect and identify objects using AI.",
                         "object recognition"),
+                    _buildFeatureTile(Icons.computer, "Vision",
+                        "See your surroundings using AI.", "vision"),
                     _buildFeatureTile(
                         Icons.task,
                         "Reminders and Task Management",
