@@ -36,7 +36,7 @@ dependencies:
   langchain: ^0.0.4
   langchain_google: ^0.0.4
 
-  web_socket_channel: ^3.0.1
+  web_socket_channel: 2.4.0
   logging: 1.2.0
   flutter_sound: ^9.1.0
   # http: 1.2.2
@@ -70,6 +70,16 @@ dependencies:
   # dio: ^5.4.3+1
 
   audioplayers: ^6.1.2
+
+  #face recog stuff
+  firebase_core: ^3.11.0  
+  firebase_auth: ^5.4.2  
+  image_picker: ^1.1.2
+  google_ml_kit: ^0.19.0
+  crypto: ^3.0.1  
+  google_mlkit_face_detection: ^0.12.0
+  supabase_flutter: ^1.0.0
+  shared_preferences: ^2.2.2
 
 dev_dependencies:
   flutter_test:
