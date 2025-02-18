@@ -27,7 +27,7 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
   Set<Polyline> _polylines = {};
   bool _isListening = false;
   String _navigationInstructions = '';
-  bool _isIndoors = false;
+  final bool _isIndoors = false;
   bool _isCameraInitialized = false;
   String _recognizedText = '';
 
