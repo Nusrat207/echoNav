@@ -1,14 +1,91 @@
 import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:flutter_tts/flutter_tts.dart';
 
 class FreemiumModelScreen extends StatefulWidget {
-  const FreemiumModelScreen({Key? key}) : super(key: key);
+  const FreemiumModelScreen({super.key});
 
   @override
   State<FreemiumModelScreen> createState() => _FreemiumModelScreenState();
 }
 
 class _FreemiumModelScreenState extends State<FreemiumModelScreen> {
+  late stt.SpeechToText _speechToText;
+  late FlutterTts _flutterTts;
   String selectedPlan = 'Yearly';
+  bool _isListening = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _speechToText = stt.SpeechToText();
+    _flutterTts = FlutterTts();
+    _initializeTts();
+    _startVoiceNavigation();
+  }
+
+  Future<void> _initializeTts() async {
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setPitch(1.0);
+  }
+
+  void _startVoiceNavigation() async {
+    await _flutterTts.speak(
+        "Welcome to the freemium model. Let me explain our subscription plans.");
+    await _flutterTts.speak(
+        "Our Yearly plan offers faster object recognition, unlimited prompts, and priority support. Normally 900, now only 600 with 33% savings and 7 days free trial. This is our BEST VALUE plan.");
+    await _flutterTts.speak(
+        "Our 3 Months plan provides faster object recognition and unlimited prompts. Normally 300, now only 220 with 27% savings and 3 days free trial. This is our MOST POPULAR plan.");
+    await _flutterTts.speak(
+        "Our 1 Month plan includes faster object recognition and unlimited prompts. Normally 100, now only 80 with 20% savings.");
+    await _flutterTts.speak(
+        "Please say 'Yearly', '3 Months', or '1 Month' to select your preferred plan.");
+    _startListening();
+  }
+
+  void _startListening() async {
+    bool available = await _speechToText.initialize();
+    if (available) {
+      setState(() => _isListening = true);
+      _speechToText.listen(
+        onResult: (result) => _handleVoiceCommand(result.recognizedWords),
+      );
+    }
+  }
+
+  void _handleVoiceCommand(String command) {
+    command = command.toLowerCase();
+    if (command.contains('yearly')) {
+      setState(() => selectedPlan = 'Yearly');
+      _flutterTts.speak("Yearly plan selected");
+    } else if (command.contains('3 months')) {
+      setState(() => selectedPlan = '3 Months');
+      _flutterTts.speak("3 Months plan selected");
+    } else if (command.contains('1 month')) {
+      setState(() => selectedPlan = '1 Month');
+      _flutterTts.speak("1 Month plan selected");
+    } else if (command.contains('continue')) {
+      _handleContinue();
+    } else {
+      _flutterTts.speak("Command not recognized. Please try again.");
+    }
+  }
+
+  void _handleContinue() {
+    // Existing continue logic
+    _flutterTts.speak("Proceeding to purchase");
+  }
+
+  @override
+  void dispose() {
+    _speechToText.stop();
+    _flutterTts.stop();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,21 +116,32 @@ class _FreemiumModelScreenState extends State<FreemiumModelScreen> {
               ),
             ),
             child: Column(
-              children: const [
-                Text(
-                  "Choose Your Plan",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '"Speak Aloud"',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
+                  child: Column(
+                    children: [
+                      Text(
+                        "Choose Your Plan",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '"Speak Aloud"',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -64,9 +152,10 @@ class _FreemiumModelScreenState extends State<FreemiumModelScreen> {
           // Plan Options
           _buildPlanOption(
             title: 'Yearly',
-            price: '\$60',
-            originalPrice: '\$120',
-            description: 'Save 50%\nGet 7 Days Free Trial',
+            price: '৳600',
+            originalPrice: '৳900',
+            description: 'Save 33%\nGet 7 Days Free Trial',
+            features: '(Faster object recognition & unlimited prompts)',
             isSelected: selectedPlan == 'Yearly',
             tag: 'BEST VALUE',
             onTap: () => setState(() => selectedPlan = 'Yearly'),
@@ -74,22 +163,25 @@ class _FreemiumModelScreenState extends State<FreemiumModelScreen> {
           ),
           _buildPlanOption(
             title: '3 Months',
-            price: '\$24',
-            originalPrice: '\$30',
-            description: 'Save 20%\nGet 3 Days Free Trial',
+            price: '৳220',
+            originalPrice: '৳300',
+            description: 'Save 27%\nGet 3 Days Free Trial',
+            features: '(Faster object recognition & unlimited prompts)',
             isSelected: selectedPlan == '3 Months',
             tag: 'Most Popular',
             onTap: () => setState(() => selectedPlan = '3 Months'),
             borderColor: const Color(0xFFFFB1C1),
           ),
           _buildPlanOption(
-            title: '1 Months',
-            price: '\$8.4',
-            originalPrice: '\$10',
-            description: 'Save 16%',
-            isSelected: selectedPlan == '1 Months',
-            onTap: () => setState(() => selectedPlan = '1 Months'),
+            title: '1 Month',
+            price: '৳80',
+            originalPrice: '৳100',
+            description: 'Save 20%',
+            features: '(Faster object recognition & unlimited prompts)',
+            isSelected: selectedPlan == '1 Month',
+            onTap: () => setState(() => selectedPlan = '1 Month'),
           ),
+
           const SizedBox(height: 20),
 
           // Disclaimer
@@ -114,10 +206,29 @@ class _FreemiumModelScreenState extends State<FreemiumModelScreen> {
                   borderRadius: BorderRadius.circular(25),
                 ),
               ),
-              onPressed: () {},
+              onPressed: () {
+                _handleContinue();
+              },
               child: const Text(
                 "Continue to Purchase",
                 style: TextStyle(fontSize: 18, color: Colors.white),
+              ),
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  Text(
+                    _isListening ? "Listening..." : "Say a command",
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
               ),
             ),
           ),
@@ -131,6 +242,7 @@ class _FreemiumModelScreenState extends State<FreemiumModelScreen> {
     required String price,
     required String originalPrice,
     required String description,
+    String? features,
     required bool isSelected,
     String? tag,
     required VoidCallback onTap,
@@ -188,6 +300,14 @@ class _FreemiumModelScreenState extends State<FreemiumModelScreen> {
                   ),
                   const SizedBox(height: 5),
                   Text(description, style: TextStyle(color: Colors.grey[700])),
+                  if (features != null)
+                    Text(
+                      features!,
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -216,4 +336,3 @@ class _FreemiumModelScreenState extends State<FreemiumModelScreen> {
     );
   }
 }
-
