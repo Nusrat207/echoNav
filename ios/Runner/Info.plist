@@ -28,7 +28,19 @@
 	<string>requires permissions for recording audio for speech</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>requires permissions for recording audio for speech</string>
+	
+	<!-- Location Permissions for Google Maps -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We need your location to show your position on the map</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>We need your location to provide navigation services</string>
+	
+	<!-- Google Maps API Key -->
+	<key>com.google.android.geo.API_KEY</key>
+	<string>AIzaSyDF2rKGbY2nhUoe1rKcI3DhUKM_HZu2oUY</string>
+	
 	<key>UILaunchStoryboardName</key>
+
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>

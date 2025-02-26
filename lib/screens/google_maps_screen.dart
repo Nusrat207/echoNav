@@ -148,10 +148,13 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
       final bytes = await image.readAsBytes();
       final base64Image = base64Encode(bytes);
       String prompt =
-          'This is my location data, tell me how can I go to this destination: current_location:${_currentLocation?.latitude},${_currentLocation?.longitude},destination:${_destination?.latitude},${_destination?.longitude}';
+          '''This is my location data, tell me how can I go to this destination: current_location:${_currentLocation?.latitude},${_currentLocation?.longitude},destination:${_destination?.latitude},${_destination?.longitude}.
+          If the location is too far away, lead the user out of the room and say that once you are outdoors, you can provide better directions.
+          Do not ask the user to use another app to navigate.
+          ''';
 
       final response = await http.post(
-        Uri.parse('http://192.168.0.103:8000/api/ask'),
+        Uri.parse('http://192.168.198.54:8000/api/ask/map'),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {
           'prompt': prompt + _recognizedText,
