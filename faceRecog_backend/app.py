@@ -33,12 +33,12 @@ except Exception:
 @app.route('/register', methods=['POST'])
 def register():
     if 'image' not in request.files:
-        print("No image file provided")
+        #print("No image file provided")
         return jsonify({'error': 'No image file provided'}), 400
 
     file = request.files['image']
     if file.filename == '':
-        print("Empty file name")
+       # print("Empty file name")
         return jsonify({'error': 'Empty file name'}), 400
 
     image_path = 'temp.jpg'
