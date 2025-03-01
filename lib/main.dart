@@ -1,21 +1,15 @@
-/*import 'dart:async';
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart'; 
-import 'camera_screen.dart'; 
-import 'face_recognition.dart'; 
-import 'databse_service.dart'; 
-import 'package:supabase_flutter/supabase_flutter.dart'; // Add Supabase
+import 'package:camera/camera.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:first_pro/screens/second_page.dart';
-import 'package:shared_preferences/shared_preferences.dart'; 
+
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Supabase
-  await Supabase.initialize(
-    url: 'https://dsfxxychapttdbtyqltq.supabase.co', 
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzZnh4eWNoYXB0dGRidHlxbHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk1MzIzNjIsImV4cCI6MjA1NTEwODM2Mn0.x8wEiBTwyq99aXOjrR0wjnso8_hSqHt-IuIHhfv4bs8', // Replace with your Supabase anon key
-  );
-
+  WidgetsFlutterBinding.ensureInitialized(); // Ensure Flutter binding is initialized
   runApp(const MyApp());
 }
 
@@ -36,9 +30,6 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const MyHomePage(title: 'Welcome to EchoNav'),
-      routes: {
-        '/camera': (context) => CameraScreen(), // Add this route
-      },
     );
   }
 }
@@ -53,121 +44,37 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  Timer? _timer;
-  final FaceRecognition _faceRecognition = FaceRecognition();
-  final DatabaseService _databaseService = DatabaseService();
-  final FlutterTts _flutterTts = FlutterTts();
-  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance(); // Initialize SharedPreferences
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeTts();
-    _checkExistingLogin(); // Check for existing login on app launch
+  // Function to check if the user is logged in
+  Future<bool> _checkLoginStatus() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('userId');
+      //await prefs.setString('userId', "abc");
+      final userId = prefs.getString('userId');
+      return userId != null;
+    } catch (e) {
+      print('Error accessing SharedPreferences: $e');
+      return false;
+    }
   }
 
-  Future<void> _initializeTts() async {
-    await _flutterTts.setLanguage("en-US");
-    await _flutterTts.setSpeechRate(0.85); 
+  // Navigate to the next page based on login status
+  void _navigateToNextPage() async {
+    bool isLoggedIn = await _checkLoginStatus();
 
-  }
-
-  Future<void> _speak(String text) async {
-    await _flutterTts.speak(text);
-  }
-
-  Future<void> _checkExistingLogin() async {
-   // _clearSharedPreferences();
-    final SharedPreferences prefs = await _prefs;
-    final String? storedFaceId = prefs.getString('faceId'); // Retrieve stored Face ID
-
-    if (storedFaceId != null) {
-      // User is already logged in
-      await _speak("Welcome back! You are already logged in.");
+    if (isLoggedIn) {
+      // If logged in, navigate to the second page
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => SecondPage()),
       );
     } else {
-      // No existing login, start the timer for automatic navigation
-      _timer = Timer(const Duration(seconds: 5), () {
-        _navigateToCamera();
-      });
+      // If not logged in, navigate to the camera screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => FaceAuthScreen()),
+      );
     }
-  }
-
-  Future<void> _navigateToCamera() async {
-    await _speak("Please stay still while the camera scans your face");
-    await Future.delayed(Duration(seconds: 2));
-
-    final imagePath = await Navigator.pushNamed(context, '/camera');
-
-    if (imagePath != null) {
-      try {
-        final imagePathString = imagePath.toString();
-        print("Image Path: $imagePathString");
-
-        final faceId = await _faceRecognition.generateFaceId(imagePathString);
-        print("Generated Face ID: $faceId");
-
-        final isUserExists = await _databaseService.isUserExists(faceId);
-        print("Is User Exists: $isUserExists");
-
-        if (isUserExists) {
-          // Old user
-          //await _speak("Welcome back! You are an existing user.");
-          await _storeFaceId(faceId); // Store Face ID locally
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => SecondPage()),
-          );
-        } else {
-          // New user
-          await _databaseService.addUser(faceId);
-          //await _speak("Welcome! You are a new user.");
-          await _storeFaceId(faceId); // Store Face ID locally
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => SecondPage()),
-          );
-        }
-      } catch (e) {
-        print("Error in face recognition: $e");
-        await _speak("An error occurred. Please try again.");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e")),
-        );
-      }
-    }
-  }
-
-  Future<void> _storeFaceId(String faceId) async {
-    final SharedPreferences prefs = await _prefs;
-    await prefs.setString('faceId', faceId); // Store Face ID locally
-  }
-
-  Future<void> _clearSharedPreferences() async {
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
-  await prefs.clear(); // Clears all data in shared preferences
-  print("Shared preferences cleared.");
-}
-
-  Future<void> _logout() async {
-    final SharedPreferences prefs = await _prefs;
-    await prefs.remove('faceId'); // Clear stored Face ID
-    await _speak("You have been logged out.");
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => MyHomePage(title: widget.title)),
-    );
-  }
-
-
-   @override
-  void dispose() {
-    _timer?.cancel();
-    _flutterTts.stop(); // Stop TTS when the widget is disposed
-    super.dispose();
   }
 
   @override
@@ -177,10 +84,10 @@ class _MyHomePageState extends State<MyHomePage> {
         toolbarHeight: 210.0,
         title: SizedBox(
           height: 210.0,
-          child: const Column(
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Text(
+              const Text(
                 'Welcome to EchoNav',
                 style: TextStyle(
                   fontSize: 40,
@@ -188,12 +95,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   color: Color(0xFF610A8A),
                 ),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               Text(
                 'Navigate, Detect, and Connect with ease',
                 style: TextStyle(
                   fontSize: 20,
-                  color: Color.fromARGB(255, 152, 118, 152),
+                  color: Colors.purple[200],
                   fontStyle: FontStyle.italic,
                 ),
               ),
@@ -212,16 +119,11 @@ class _MyHomePageState extends State<MyHomePage> {
               fit: BoxFit.cover,
             ),
             const SizedBox(height: 20),
-            const SizedBox(height: 30),
             ElevatedButton(
-              onPressed: () {
-                _timer?.cancel();
-                _navigateToCamera();
-              },
+              onPressed: _navigateToNextPage,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF610A8A),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 50, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 12),
                 textStyle: const TextStyle(fontSize: 24),
               ),
               child: const Text(
@@ -238,7 +140,168 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
-*/
+
+class FaceAuthScreen extends StatefulWidget {
+  @override
+  _FaceAuthScreenState createState() => _FaceAuthScreenState();
+}
+
+class _FaceAuthScreenState extends State<FaceAuthScreen> {
+  late CameraController _cameraController;
+  late Future<void> _initializeControllerFuture;
+  bool _isLoading = false;
+  late FlutterTts _flutterTts;
+  Timer? _captureTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    print('Initializing FaceAuthScreen...');
+    _initializeCamera();
+    _initializeTts();
+  }
+
+  Future<void> _initializeTts() async {
+    print('Initializing TTS...');
+    _flutterTts = FlutterTts();
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+    print('TTS initialized successfully.');
+  }
+
+  Future<void> _initializeCamera() async {
+    print('Initializing camera...');
+    try {
+      final cameras = await availableCameras();
+      print('Available cameras: $cameras');
+      final frontCamera = cameras.firstWhere(
+        (camera) => camera.lensDirection == CameraLensDirection.front,
+        orElse: () => cameras[0],
+      );
+      print('Selected camera: ${frontCamera.name}');
+      _cameraController = CameraController(frontCamera, ResolutionPreset.medium);
+      _initializeControllerFuture = _cameraController.initialize();
+      setState(() {});
+      print('Camera initialized successfully.');
+    } catch (e) {
+      print('Error initializing camera: $e');
+    }
+  }
+
+  Future<void> _speak(String text) async {
+    print('Speaking: $text');
+    await _flutterTts.speak(text);
+  }
+
+  Future<void> _processImage() async {
+    print('Processing image...');
+    setState(() => _isLoading = true);
+    try {
+      await _initializeControllerFuture;
+      print('Taking picture...');
+      final image = await _cameraController.takePicture();
+      print('Picture taken: ${image.path}');
+      final file = File(image.path);
+
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('http://192.168.0.103:5000/register'),
+      );
+      request.files.add(await http.MultipartFile.fromPath('image', file.path));
+      request.fields['name'] = 'User';
+
+      print('Sending request to server...');
+      var response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+      final jsonResponse = jsonDecode(responseBody);
+      print('Server response: $jsonResponse');
+
+      if (response.statusCode == 200) {
+        final userId = jsonResponse['user_id'] ?? jsonResponse['user']?['id'];
+        if (userId != null) {
+          print('User ID received: $userId');
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('userId', userId);
+          print('User ID saved to SharedPreferences.');
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => SecondPage()),
+          );
+        } else {
+          print('Error: User ID not found in response.');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error: User ID not found')),
+          );
+        }
+      } else {
+        print('Error: ${jsonResponse['error'] ?? 'Unknown error'}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${jsonResponse['error'] ?? 'Unknown error'}')),
+        );
+      }
+    } catch (e) {
+      print('Error processing image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+      print('Image processing completed.');
+    }
+  }
+
+  void _startCaptureTimer() {
+    print('Starting 7-second capture timer...');
+    _captureTimer = Timer(Duration(seconds: 8), () {
+      if (!_isLoading) {
+        print('7 seconds elapsed. Capturing image...');
+        _processImage();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    print('Disposing FaceAuthScreen resources...');
+    _cameraController.dispose();
+    _flutterTts.stop();
+    _captureTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Face Authentication')),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : FutureBuilder<void>(
+              future: _initializeControllerFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.done) {
+                  print('Camera preview ready.');
+                  _speak("Stay still for 5 seconds while your face is being captured.");
+                  _startCaptureTimer();
+                  return CameraPreview(_cameraController);
+                }
+                return const Center(child: CircularProgressIndicator());
+              },
+            ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _isLoading ? null : _processImage,
+        backgroundColor: const Color(0xFF610A8A),
+        child: const Icon(Icons.camera, color: Colors.white),
+      ),
+    );
+  }
+}
+
+
+/*
+
+//this part runs properly. without face recognition 
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -371,3 +434,6 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+*/
+
+
