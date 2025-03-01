@@ -96,7 +96,6 @@ def register():
         return jsonify({'error': f'Qdrant error: {str(e)}'}), 500
 
 
-
 @app.route('/login', methods=['POST'])
 def login():
     if 'image' not in request.files:
@@ -112,7 +111,7 @@ def login():
     # Generate embedding
     try:
         query_embedding = DeepFace.represent(img_path=image_path, model_name='Facenet')[0]['embedding']
-        print(f"Generated query embedding: {query_embedding}")  # Print the query embedding
+        #print(f"Generated query embedding: {query_embedding}")  # Print the query embedding
     except Exception as e:
         return jsonify({'error': f'Embedding error: {str(e)}'}), 500
 
