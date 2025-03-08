@@ -5,7 +5,7 @@ from langchain.prompts import PromptTemplate
 
 app = Flask(__name__)
 
-HUGGINGFACEHUB_API_TOKEN = ""
+HUGGINGFACEHUB_API_TOKEN = "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"
 model_id = "google/flan-t5-large"
 
 llm = HuggingFaceHub(huggingfacehub_api_token=HUGGINGFACEHUB_API_TOKEN,
@@ -13,10 +13,16 @@ llm = HuggingFaceHub(huggingfacehub_api_token=HUGGINGFACEHUB_API_TOKEN,
                      model_kwargs={"temperature": 0.8, "max_new_tokens": 150})
 
 prompt_template = """
-You are a helpful assistant who will answer the user's query as best as possible.
+You are a kind and patient AI assistant designed to help visually challenged users. 
+Your responses should be clear, concise, and easy to understand. 
+Use simple language and, when necessary, describe things in a way that can be easily imagined without sight. 
+If a response requires instructions, provide them step by step.
+
 Question:
 {question}
 """
+
+
 
 prompt = PromptTemplate(input_variables=["question"], template=prompt_template)
 
