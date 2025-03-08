@@ -407,13 +407,13 @@ class _FreemiumModelScreenState extends State<FreemiumModelScreen> {
 
   void _startVoiceNavigation() async {
     await _flutterTts.speak(
-        "Welcome to the freemium model. Let me explain our subscription plans.");
+        "Welcome to the freemium model. Let me explain our subscription plans. All our plans offer faster object recognition, unlimited prompts, and priority support. ");
     await _flutterTts.speak(
-        "Our Yearly plan offers faster object recognition, unlimited prompts, and priority support. Normally 900, now only 600 with 33% savings and 7 days free trial. This is our BEST VALUE plan.");
+        "Our Yearly plan is normally 900, now only 600 with 33% savings and 7 days free trial. This is our BEST VALUE plan.");
     await _flutterTts.speak(
-        "Our 3 Months plan provides faster object recognition and unlimited prompts. Normally 300, now only 220 with 27% savings and 3 days free trial. This is our MOST POPULAR plan.");
-    await _flutterTts.speak(
-        "Our 1 Month plan includes faster object recognition and unlimited prompts. Normally 100, now only 80 with 20% savings.");
+        "Our 3 Months plan is usually 300, now only 220 with 27% savings and 3 days free trial. This is our MOST POPULAR plan.");
+    await _flutterTts
+        .speak("Our 1 Month plan is 100, now only 80 with 20% savings.");
     await _flutterTts.speak(
         "Please say 'Yearly', '3 Months', or '1 Month' to select your preferred plan.");
     _startListening();

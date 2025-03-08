@@ -1,4 +1,4 @@
-import 'dart:async';
+/*import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -297,15 +297,13 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
     );
   }
 }
+*/
 
-
-/*
-
-//this part runs properly. without face recognition 
+//this part runs properly. without face recognition
 
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:first_pro/screens/second_page.dart';
+import 'package:echoNav/screens/second_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -434,6 +432,3 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
-*/
-
-

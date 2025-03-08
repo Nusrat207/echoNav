@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+/*import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -169,13 +169,10 @@ class DetectionBoxesPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
+*/
 
-
-
-/*import 'package:camera/camera.dart';
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-
-
 
 class ObjectRecognitionScreen extends StatefulWidget {
   const ObjectRecognitionScreen({super.key});
@@ -189,8 +186,8 @@ class _ObjectRecognitionScreenState extends State<ObjectRecognitionScreen> {
   CameraController? _cameraController;
   List<CameraDescription>? cameras;
   CameraImage? imgCamera;
-  String result="";
-  bool isWorking=false;
+  String result = "";
+  bool isWorking = false;
 
   /*loadModel() async {
     await Tflite.loadModel(
@@ -214,15 +211,15 @@ class _ObjectRecognitionScreenState extends State<ObjectRecognitionScreen> {
       _cameraController = CameraController(cameras![0], ResolutionPreset.high);
       await _cameraController!.initialize();
 
-      if( _cameraController!.value.isInitialized ) {
+      if (_cameraController!.value.isInitialized) {
         setState(() {
-          if(!isWorking) {
+          if (!isWorking) {
             isWorking = true;
             _cameraController?.startImageStream((imageFromStream) {
-            imgCamera = imageFromStream;
-            //runModelOnStreamFrames();
-          });
-        }
+              imgCamera = imageFromStream;
+              //runModelOnStreamFrames();
+            });
+          }
         });
       }
     } catch (e) {
@@ -268,7 +265,6 @@ class _ObjectRecognitionScreenState extends State<ObjectRecognitionScreen> {
       }
     }
   }*/
-
 
   @override
   void dispose() async {
@@ -411,4 +407,4 @@ class SoundWaveVisualizer extends StatelessWidget {
       ),
     );
   }
-}*/
+}
