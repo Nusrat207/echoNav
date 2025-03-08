@@ -233,6 +233,8 @@ class _CheckoutState extends State<Checkout> {
 }
 */
 
+/*
+//main file
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_sslcommerz/model/SSLCSdkType.dart';
@@ -349,7 +351,7 @@ class _CheckoutState extends State<Checkout> {
   }
 
   Future<void> _initiateSSLCommerzPayment() async {
-    final sslcommerz = Sslcommerz(
+    Sslcommerz sslcommerz = Sslcommerz(
       initializer: SSLCommerzInitialization(
         multi_card_name: "visa,master,bkash",
         currency: SSLCurrencyType.BDT,
@@ -529,6 +531,189 @@ class _CheckoutState extends State<Checkout> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+*/
+import 'package:flutter/material.dart';
+import 'package:echoNav/screens/payment_helper.dart'; // Import payment_helper.dart
+
+class Checkout extends StatefulWidget {
+  final String planName;
+  final String price;
+  final String description;
+
+  const Checkout({
+    super.key,
+    required this.planName,
+    required this.price,
+    required this.description,
+  });
+
+  @override
+  State<Checkout> createState() => _CheckoutState();
+}
+
+class _CheckoutState extends State<Checkout> {
+  String? selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[100], // Light grey background
+      appBar: AppBar(
+        backgroundColor: const Color.fromARGB(255, 177, 101, 180),
+        centerTitle: false,
+        title: const Text(
+          'Checkout',
+          style: TextStyle(
+            color: Colors.white,
+          ),
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(15),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Centered Card for Plan Details
+            Center(
+              child: Card(
+                elevation: 5,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Plan: ${widget.planName}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        'Description: ${widget.description}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        'Price: ${widget.price}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Payment Method Section
+            const Text(
+              'Select a payment method',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // SSLCommerz Option
+            PaymentMethodTile(
+              logo:
+                  'https://apps.odoo.com/web/image/loempia.module/193670/icon_image?unique=c301a64',
+              name: 'SslCommerz',
+              selected: selected ?? '',
+              onTap: () {
+                selected = 'sslcommerz';
+                setState(() {});
+              },
+            ),
+            const SizedBox(height: 20),
+
+            // Continue to Payment Button
+            InkWell(
+              onTap: selected == null
+                  ? null
+                  : () {
+                      onButtonTap(selected ?? '');
+                    },
+              child: Container(
+                height: 50,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: selected == null
+                      ? const Color.fromARGB(255, 246, 148, 253).withOpacity(.5)
+                      : const Color.fromARGB(255, 128, 39, 137),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Center(
+                  child: Text(
+                    'Continue to payment',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class PaymentMethodTile extends StatelessWidget {
+  final String logo;
+  final String name;
+  final Function()? onTap;
+  final String selected;
+
+  const PaymentMethodTile({
+    super.key,
+    required this.logo,
+    required this.name,
+    this.onTap,
+    required this.selected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected == name.replaceAll(' ', '_').toLowerCase()
+                ? const Color.fromARGB(255, 253, 170, 253)
+                : Colors.black.withOpacity(.1),
+            width: 2,
+          ),
+        ),
+        child: ListTile(
+          leading: Image.network(
+            logo,
+            height: 35,
+            width: 35,
+          ),
+          title: Text(name),
+        ),
       ),
     );
   }

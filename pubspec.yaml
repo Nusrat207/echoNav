@@ -11,7 +11,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_sslcommerz: ^2.4.1
+  flutter_sslcommerz: ^2.3.6
   http: ^0.13.3
   speech_to_text: ^6.1.1
   flutter_tts: ^3.5.0
