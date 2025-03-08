@@ -48,6 +48,7 @@ class Assistant:
         4. Provide clear, concise directional guidance
         5. Use specific distances and directions (left/right/front/back)
         6. Prioritize safety-critical information
+        7. DON'T say 'current instruction completed' if you determine that the user is not following your instructions or the user is indoors.
         
         Keep responses brief and focused on navigation-relevant details.
         """
