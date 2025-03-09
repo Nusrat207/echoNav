@@ -254,11 +254,11 @@ class _SecondPageState extends State<SecondPage> {
                         "Navigation",
                         "Seamless navigation with voice commands.",
                         "navigation"),
-                    _buildFeatureTile(
-                        Icons.computer,
-                        "Object Recognition",
-                        "Detect and identify objects using AI.",
-                        "object recognition"),
+                    // _buildFeatureTile(
+                    //     Icons.computer,
+                    //     "Object Recognition",
+                    //     "Detect and identify objects using AI.",
+                    //     "object recognition"),
                     _buildFeatureTile(Icons.computer, "Vision",
                         "See your surroundings using AI.", "vision"),
                     _buildFeatureTile(

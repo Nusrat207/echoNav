@@ -31,6 +31,7 @@ migrate_working_dir/
 .pub/
 /build/
 /vision_model/venv
+/faceRecog_backend/venv
 # Symbolication related
 app.*.symbols
 

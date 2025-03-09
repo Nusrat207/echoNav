@@ -63,7 +63,7 @@ class Assistant:
                         {"type": "text", "text": "{prompt}"},
                         {
                             "type": "image_url",
-                            "image_url": "data:image/jpeg;base64,{image_base64}",
+                            "image_url": "data:image/jpeg;base64,{'image_base64'}",
                         },
                     ],
                 ),
@@ -83,9 +83,36 @@ class Assistant:
 
 # Initialize the assistant with the Gemini Flash model
 model = ChatGoogleGenerativeAI(model="gemini-2.0-flash")
+# model = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest")
 assistant = Assistant(model)
 
 @app.post("/api/ask")
+async def ask_question(prompt: str = Form(...), image: Optional[str] = Form(None)):
+    """
+    Receive a prompt and an optional base64-encoded image.
+    """
+    # Log the received prompt
+    logging.info(f"Received prompt: {prompt}")
+    
+    # If an image is provided, process it
+    image_base64 = image  # The image is already expected to be base64 string
+    if image_base64:
+        logging.info(f"Received image (base64): {image_base64[:30]}...")  # Log first 30 characters of base64 for debug
+    
+    # If no prompt, return an empty response
+    if not prompt:
+        return {"response": "No prompt received, camera feed is being ignored."}
+
+    # If a prompt is received, process the image and generate a response
+    if image_base64:
+        response = assistant.answer(prompt, image_base64)
+    else:
+        response = assistant.answer(prompt)
+
+    return {"response": response}
+
+
+@app.post("/api/ask/map")
 async def ask_question(prompt: str = Form(...), image: Optional[str] = Form(None)):
     """
     Receive a prompt and an optional base64-encoded image.
