@@ -30,7 +30,8 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
-
+/vision_model/venv
+/faceRecog_backend/venv
 # Symbolication related
 app.*.symbols
 

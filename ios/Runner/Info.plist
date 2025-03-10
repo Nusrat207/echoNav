@@ -24,7 +24,23 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>requires permissions for recording audio for speech</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>requires permissions for recording audio for speech</string>
+	
+	<!-- Location Permissions for Google Maps -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We need your location to show your position on the map</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>We need your location to provide navigation services</string>
+	
+	<!-- Google Maps API Key -->
+	<key>com.google.android.geo.API_KEY</key>
+	<string>AIzaSyDF2rKGbY2nhUoe1rKcI3DhUKM_HZu2oUY</string>
+	
 	<key>UILaunchStoryboardName</key>
+
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
@@ -45,5 +61,15 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+	<!-- Add the following keys for camera, microphone, and speech recognition permissions -->
+
+	<key>NSCameraUsageDescription</key>
+	<string>We need camera access to detect objects.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>We need microphone access for speech recognition.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>We need speech recognition for voice commands.</string>
+
 </dict>
 </plist>
