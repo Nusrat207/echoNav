@@ -89,8 +89,12 @@ class _SecondPageState extends State<SecondPage> {
 
   void captureVoice() async {
     if (!isListening && isTtsSpeaking) {
+      print("GOING TO INITIALIZE STT");
+
+
       bool available = await _speechToText.initialize();
       if (available) {
+        print("STT INITIALIZED YAYYY");
         setState(() => isListening = true);
         _speechToText.listen(
           onResult: (result) {
@@ -106,8 +110,9 @@ class _SecondPageState extends State<SecondPage> {
           },
         );
 
-        await Future.delayed(Duration(seconds: 6));
+        await Future.delayed(Duration(seconds: 10));
         _speechToText.stop();
+        print("STT STOPPED");
         setState(() => isListening = false);
       } else {
         print("Speech recognition not available");
