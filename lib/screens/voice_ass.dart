@@ -24,6 +24,9 @@ class _Stt extends State<Stt> {
   String responseText = "";
   double confidence = 1.0;
 
+  // Chat history to display conversation
+  List<Map<String, String>> chatHistory = [];
+
   @override
   void initState() {
     super.initState();
@@ -66,6 +69,9 @@ class _Stt extends State<Stt> {
     // Initial greeting
     setState(() {
       isSpeaking = true;
+      // Add initial greeting to chat history
+      chatHistory
+          .add({'type': 'assistant', 'message': 'How may I help you today?'});
     });
 
     await _flutterTts.speak("How may I help you today?");
@@ -115,21 +121,57 @@ class _Stt extends State<Stt> {
     }
   }
 
+  // Stop the TTS speech
+  Future<void> _stopSpeaking() async {
+    if (isSpeaking) {
+      await _flutterTts.stop();
+      setState(() {
+        isSpeaking = false;
+      });
+
+      // Start listening again after stopping speech
+      await _startListening();
+    }
+  }
+
+  // Format chat history for the backend
+  String _formatChatHistoryForBackend() {
+    StringBuffer formattedHistory = StringBuffer();
+
+    // Add previous conversations for context
+    for (var chat in chatHistory) {
+      String role = chat['type'] == 'user' ? 'User' : 'Assistant';
+      formattedHistory.write('$role: ${chat['message']}\n');
+    }
+
+    return formattedHistory.toString();
+  }
+
   Future<void> _processVoiceInput(String text) async {
     if (text.isEmpty || isProcessing) return;
 
+    // Add user message to chat history
     setState(() {
+      chatHistory.add({'type': 'user', 'message': text});
       isProcessing = true;
     });
 
     try {
+      // Format chat history for context
+      String chatHistoryContext = _formatChatHistoryForBackend();
+
+      // Create the full prompt with chat history and current query
+      String fullPrompt = chatHistoryContext + "\nUser: " + text;
+
       // Send the voice input to the backend
       var url = Uri.parse("http://192.168.0.103:8000/api/ask/voice");
       var response = await http.post(
         url,
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {
-          'prompt': text,
+          'prompt': fullPrompt,
+          'chat_history':
+              chatHistoryContext, // Send chat history separately if needed
         },
       );
 
@@ -139,6 +181,8 @@ class _Stt extends State<Stt> {
 
         setState(() {
           responseText = aiResponse;
+          // Add assistant response to chat history
+          chatHistory.add({'type': 'assistant', 'message': aiResponse});
           isProcessing = false;
         });
 
@@ -153,8 +197,11 @@ class _Stt extends State<Stt> {
         print("Failed to send request: ${response.statusCode}");
         print("Response body: ${response.body}");
 
+        String errorMsg = "Sorry, I couldn't process your request.";
         setState(() {
-          responseText = "Sorry, I couldn't process your request.";
+          responseText = errorMsg;
+          // Add error message to chat history
+          chatHistory.add({'type': 'assistant', 'message': errorMsg});
           isProcessing = false;
         });
 
@@ -163,14 +210,17 @@ class _Stt extends State<Stt> {
           isSpeaking = true;
         });
 
-        await _flutterTts.speak("Sorry, I couldn't process your request.");
+        await _flutterTts.speak(errorMsg);
         // Listening will restart via the TTS completion handler
       }
     } catch (e) {
       print('Error processing voice input: $e');
 
+      String errorMsg = "Sorry, an error occurred.";
       setState(() {
-        responseText = "Sorry, an error occurred.";
+        responseText = errorMsg;
+        // Add error message to chat history
+        chatHistory.add({'type': 'assistant', 'message': errorMsg});
         isProcessing = false;
       });
 
@@ -179,7 +229,7 @@ class _Stt extends State<Stt> {
         isSpeaking = true;
       });
 
-      await _flutterTts.speak("Sorry, an error occurred.");
+      await _flutterTts.speak(errorMsg);
       // Listening will restart via the TTS completion handler
     }
   }
@@ -189,6 +239,10 @@ class _Stt extends State<Stt> {
     if (recognizedText.isNotEmpty && !isProcessing && !isSpeaking) {
       _stopListening();
       await _processVoiceInput(recognizedText);
+      // Clear recognized text after processing
+      setState(() {
+        recognizedText = "";
+      });
     }
   }
 
@@ -206,69 +260,100 @@ class _Stt extends State<Stt> {
       ),
       body: Column(
         children: [
-          // Main content area
+          // Chat history area
           Expanded(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Voice command display
-                    Text(
-                      "You said:",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8.0),
-                      child: Container(
-                        padding: EdgeInsets.all(12.0),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(8.0),
+            child: chatHistory.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.mic_none_outlined,
+                          size: 80,
+                          color: Colors.grey.shade400,
                         ),
-                        child: Text(
-                          recognizedText.isEmpty
-                              ? "Waiting for your voice..."
-                              : recognizedText,
-                          style: TextStyle(fontSize: 16),
+                        SizedBox(height: 16),
+                        Text(
+                          "Speak to start a conversation",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey.shade600,
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                    SizedBox(height: 20),
+                  )
+                : ListView.builder(
+                    padding: EdgeInsets.all(16),
+                    itemCount: chatHistory.length,
+                    reverse: false,
+                    itemBuilder: (context, index) {
+                      final chat = chatHistory[index];
+                      final isUser = chat['type'] == 'user';
 
-                    // Response display
-                    Text(
-                      "Assistant response:",
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: 12),
+                        child: Column(
+                          crossAxisAlignment: isUser
+                              ? CrossAxisAlignment.end
+                              : CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isUser ? "You:" : "Assistant:",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Container(
+                              padding: EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isUser
+                                    ? Colors.grey[200]
+                                    : Colors.grey[100],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey[300]!),
+                              ),
+                              child: Text(
+                                chat['message'] ?? '',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+
+          // Current voice input display
+          if (isListening && recognizedText.isNotEmpty)
+            Container(
+              margin: EdgeInsets.all(16),
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.mic, color: Colors.red),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      recognizedText,
                       style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                        fontSize: 16,
+                        fontStyle: FontStyle.italic,
                       ),
                     ),
-                    Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8.0),
-                      child: Container(
-                        padding: EdgeInsets.all(12.0),
-                        decoration: BoxDecoration(
-                          color: Colors.blue[100],
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                        child: Text(
-                          responseText.isEmpty
-                              ? "I'll respond here..."
-                              : responseText,
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          ),
 
           // Status indicator
           if (isProcessing)
@@ -284,6 +369,34 @@ class _Stt extends State<Stt> {
               ),
             ),
 
+          // Speaking indicator
+          if (isSpeaking)
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.volume_up, color: Colors.blue),
+                  SizedBox(width: 8),
+                  Text("Speaking..."),
+                  SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: _stopSpeaking,
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                      minimumSize: Size(0, 0),
+                    ),
+                    child: Text("Stop"),
+                  ),
+                ],
+              ),
+            ),
+
           // Button row
           Padding(
             padding: EdgeInsets.all(16.0),
@@ -291,9 +404,9 @@ class _Stt extends State<Stt> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 ElevatedButton(
-                  onPressed: isListening || isSpeaking || isProcessing
-                      ? _stopListening
-                      : _startListening,
+                  onPressed: isProcessing || isSpeaking
+                      ? null
+                      : (isListening ? _stopListening : _startListening),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.all(16.0),
                     shape: CircleBorder(),
@@ -319,6 +432,20 @@ class _Stt extends State<Stt> {
                     size: 30,
                   ),
                 ),
+                if (isSpeaking)
+                  ElevatedButton(
+                    onPressed: _stopSpeaking,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.all(16.0),
+                      shape: CircleBorder(),
+                      backgroundColor: Colors.red,
+                    ),
+                    child: Icon(
+                      Icons.volume_off,
+                      size: 30,
+                      color: Colors.white,
+                    ),
+                  ),
               ],
             ),
           ),
