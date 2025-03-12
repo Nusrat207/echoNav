@@ -150,6 +150,9 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
 
   Future<void> _processVoiceInput(String text) async {
     try {
+      // Stop listening while TTS is speaking
+      _stopListening();
+
       // Announce that we're navigating to the requested location
       await _tts.speak("Navigating to " + text);
 
@@ -168,9 +171,14 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
 
         // Get route and directions
         await _updateRouteAndDirections();
+      } else {
+        // If geocoding failed, restart listening
+        await _startListening();
       }
     } catch (e) {
       print('Error processing voice input: $e');
+      // Restart listening in case of error
+      await _startListening();
     }
   }
 
@@ -220,9 +228,14 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
 
           // Start navigation
           _processCameraImage();
+        } else {
+          // If directions failed, restart listening
+          await _startListening();
         }
       } catch (e) {
         print('Error getting directions: $e');
+        // Restart listening in case of error
+        await _startListening();
       }
     }
   }
@@ -268,6 +281,9 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
       return;
     }
 
+    // Stop listening while TTS is speaking
+    _stopListening();
+
     setState(() {
       _isSpeaking = true;
     });
@@ -300,11 +316,16 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
           _processCameraImage();
         } else {
           // Reached destination
-          _tts.speak("You've reached your destination!");
+          await _tts.speak("You've reached your destination!");
+          // Restart listening after destination announcement
+          await _startListening();
           return;
         }
       } else if (!_isIndoors && !_isNavigatingToVisionPage) {
         _processCameraImage();
+      } else {
+        // Restart listening if no further processing is needed
+        await _startListening();
       }
     });
 
@@ -326,6 +347,9 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
 
     // Check if we need to switch to indoor navigation
     if (_isIndoors && !_inVisionPage && !_isNavigatingToVisionPage) {
+      // Make sure listening is stopped
+      _stopListening();
+
       setState(() {
         _isNavigatingToVisionPage = true;
         _navigationInstructions += ". Switching to indoor navigation mode";
@@ -346,8 +370,14 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
                 _inVisionPage = true;
                 _isNavigatingToVisionPage = false;
               });
+
+              // Restart listening after returning from Vision Page
+              _startListening();
             }
           });
+        } else {
+          // Restart listening if not navigating to Vision Page
+          await _startListening();
         }
       });
 
@@ -398,21 +428,27 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
             _isIndoors = true;
             _processCameraImage();
           });
+        } else {
+          // Stop listening before speaking
+          _stopListening();
+          await _speakCurrentInstruction();
         }
-
-        await _speakCurrentInstruction();
       } else {
         print("Failed to send request: ${response.statusCode}");
         print("Response body: ${response.body}");
         setState(() {
           _processingNextInstruction = false;
         });
+        // Restart listening after error
+        await _startListening();
       }
     } catch (e) {
       print('Error processing camera image: $e');
       setState(() {
         _processingNextInstruction = false;
       });
+      // Restart listening after error
+      await _startListening();
     }
   }
 
