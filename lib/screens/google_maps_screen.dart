@@ -47,7 +47,8 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
 
   Future<void> _initializeComponents() async {
     // Initialize map repository
-    _mapRepository = MapRepository(apiKey: 'AIzaSyDF2rKGbY2nhUoe1rKcI3DhUKM_HZu2oUY');
+    _mapRepository =
+        MapRepository(apiKey: 'AIzaSyDF2rKGbY2nhUoe1rKcI3DhUKM_HZu2oUY');
 
     // Initialize camera
     final cameras = await availableCameras();
@@ -77,7 +78,8 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
 
     // Configure TTS
     await _tts.setLanguage('en-US');
-    await _tts.setSpeechRate(0.5); // Slower speech rate for clearer instructions
+    await _tts
+        .setSpeechRate(0.5); // Slower speech rate for clearer instructions
   }
 
   Future<void> _getCurrentLocation() async {
@@ -141,7 +143,8 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
   Future<void> _processVoiceInput(String text) async {
     try {
       // First, get destination coordinates from voice input
-      final geocodingUrl = 'https://maps.googleapis.com/maps/api/geocode/json?address=${Uri.encodeComponent(text)}&key=AIzaSyDF2rKGbY2nhUoe1rKcI3DhUKM_HZu2oUY';
+      final geocodingUrl =
+          'https://maps.googleapis.com/maps/api/geocode/json?address=${Uri.encodeComponent(text)}&key=AIzaSyDF2rKGbY2nhUoe1rKcI3DhUKM_HZu2oUY';
       final response = await http.get(Uri.parse(geocodingUrl));
       final data = json.decode(response.body);
 
@@ -177,9 +180,8 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
 
         if (data['status'] == 'OK') {
           // Extract route points for polyline
-          final points = _decodePolyline(
-              data['routes'][0]['overview_polyline']['points']
-          );
+          final points =
+              _decodePolyline(data['routes'][0]['overview_polyline']['points']);
 
           // Extract steps for navigation
           final steps = data['routes'][0]['legs'][0]['steps'] as List;
@@ -196,7 +198,8 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
             // Store and process directions steps
             _directionsSteps = steps.map((step) {
               // Remove HTML tags from instructions
-              String instruction = step['html_instructions'].toString()
+              String instruction = step['html_instructions']
+                  .toString()
                   .replaceAll(RegExp(r'<[^>]*>'), ' ')
                   .replaceAll('  ', ' ');
               return instruction;
@@ -228,50 +231,53 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
       return;
     }
 
-      setState(() {
-        _isSpeaking = true;
-      });
+    setState(() {
+      _isSpeaking = true;
+    });
 
-      //String instruction = _directionsSteps[_currentStepIndex];
-      /*setState(() {
+    //String instruction = _directionsSteps[_currentStepIndex];
+    /*setState(() {
         _navigationInstructions += _currentStepIndex.toString();
       });*/
 
-      // Set up completion handler for TTS
-      _tts.setCompletionHandler(() async {
-        if (_isDisposed) return;
+    // Set up completion handler for TTS
+    _tts.setCompletionHandler(() async {
+      if (_isDisposed) return;
 
-        setState(() {
-          _isSpeaking = false;
-          _processingNextInstruction = false;
-        });
-        //_tts.speak("Reached here" + _currentStepIndex.toString());
-        // After speech completion, process the camera image
-        if (!_isDisposed && !_isIndoors
-            && _navigationInstructions.trim().contains("Current instruction completed") ||
-            _navigationInstructions.trim().contains("current instruction completed")) {
-         print("IN THE NEXT INSTRUCTION PHASE LESGO");
-
-          if (_currentStepIndex < _directionsSteps.length) {
-
-            setState(() {
-              _currentStepIndex = _currentStepIndex + 1;
-            });
-
-            _processCameraImage();
-          } else {
-            // Reached destination
-            _tts.speak("You've reached your destination!");
-            return;
-          }
-        }else if (!_isIndoors && !_isNavigatingToVisionPage) {
-          _processCameraImage();
-        }
+      setState(() {
+        _isSpeaking = false;
+        _processingNextInstruction = false;
       });
+      //_tts.speak("Reached here" + _currentStepIndex.toString());
+      // After speech completion, process the camera image
+      if (!_isDisposed &&
+              !_isIndoors &&
+              _navigationInstructions
+                  .trim()
+                  .contains("Current instruction completed") ||
+          _navigationInstructions
+              .trim()
+              .contains("current instruction completed")) {
+        print("IN THE NEXT INSTRUCTION PHASE LESGO");
 
-      // Speak the current instruction
-      await _tts.speak(_navigationInstructions);
+        if (_currentStepIndex < _directionsSteps.length) {
+          setState(() {
+            _currentStepIndex = _currentStepIndex + 1;
+          });
 
+          _processCameraImage();
+        } else {
+          // Reached destination
+          _tts.speak("You've reached your destination!");
+          return;
+        }
+      } else if (!_isIndoors && !_isNavigatingToVisionPage) {
+        _processCameraImage();
+      }
+    });
+
+    // Speak the current instruction
+    await _tts.speak(_navigationInstructions);
   }
 
   List<LatLng> _decodePolyline(String encoded) {
@@ -304,7 +310,9 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
 
   Future<void> _processCameraImage() async {
     // Prevent multiple simultaneous processing
-    if (_processingNextInstruction || _isSpeaking || _isNavigatingToVisionPage) {
+    if (_processingNextInstruction ||
+        _isSpeaking ||
+        _isNavigatingToVisionPage) {
       return;
     }
 
@@ -350,12 +358,17 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
       final image = await _cameraController.takePicture();
       final bytes = await image.readAsBytes();
       final base64Image = base64Encode(bytes);
-      final indoorText = ". If you don't see a road ahead of you and determine that I am indoors, you will ONLY say 'Since you are indoors, I can't provide you detailed instructions to your destination'. ";
+      final indoorText =
+          ". If you don't see a road ahead of you and determine that I am indoors, you will ONLY say 'Since you are indoors, I can't provide you detailed instructions to your destination'. ";
 
-      String prompt = "You're helping me navigate the space you see in the image. You're going to read the following instruction, and also going to identify any potential obstacles you can see in the image while trying to follow the instruction. INSTRUCTION: " + _directionsSteps[_currentStepIndex] + indoorText + " Otherwise, If you can determine that user has completed the current instruction and is NOT indoors, end your statement by saying 'current instruction completed'.";
+      String prompt =
+          "You're helping me navigate the space you see in the image. You're going to read the following instruction, and also going to identify any potential obstacles you can see in the image while trying to follow the instruction. INSTRUCTION: " +
+              _directionsSteps[_currentStepIndex] +
+              indoorText +
+              " Otherwise, If you can determine that user has completed the current instruction and is NOT indoors, end your statement by saying 'current instruction completed'.";
 
       final response = await http.post(
-        Uri.parse('http://192.168.240.181:8000/api/ask'),
+        Uri.parse('http://192.168.238.54:8000/api/ask'),
         body: {
           'image': base64Image,
           'prompt': prompt,
@@ -372,22 +385,19 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
         });
 
         // Process indoor detection
-        if (enhancedInstructions.trim().contains("Since you are indoors, I can't provide you detailed instructions to your destination")) {
+        if (enhancedInstructions.trim().contains(
+            "Since you are indoors, I can't provide you detailed instructions to your destination")) {
           setState(() {
             _isIndoors = true;
             _processCameraImage();
           });
         }
 
-
-
-
         // Set up completion handler for this specific speech
 
         //await _tts.speak(enhancedInstructions);
         await _speakCurrentInstruction();
       }
-
     } catch (e) {
       print('Error processing camera image: $e');
     } finally {
@@ -407,44 +417,47 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
             child: _currentLocation == null
                 ? Center(child: CircularProgressIndicator())
                 : GoogleMap(
-              initialCameraPosition: CameraPosition(
-                target: _currentLocation!,
-                zoom: 15,
-              ),
-              onMapCreated: (controller) => _mapController = controller,
-              myLocationEnabled: true,
-              polylines: _polylines,
-            ),
+                    initialCameraPosition: CameraPosition(
+                      target: _currentLocation!,
+                      zoom: 15,
+                    ),
+                    onMapCreated: (controller) => _mapController = controller,
+                    myLocationEnabled: true,
+                    polylines: _polylines,
+                  ),
           ),
 
           // Camera View (bottom half)
           Expanded(
             child: _isCameraInitialized
-                ?  Column(
-              children: [
-                Expanded(
-                  child: CameraPreview(_cameraController),
-                ),
-                Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Text(_navigationInstructions),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ElevatedButton(
-                      onPressed: _startListening,
-                      child: Text(_isListening ? 'Listening...' : 'Start Navigation'),
-                    ),
-                    if (_directionsSteps.isNotEmpty)
-                      ElevatedButton(
-                        onPressed: _speakCurrentInstruction,
-                        child: Text('Repeat Instruction'),
+                ? Column(
+                    children: [
+                      Expanded(
+                        child: CameraPreview(_cameraController),
                       ),
-                  ],
-                ),
-              ],
-            ) : Center(child: CircularProgressIndicator()),
+                      Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Text(_navigationInstructions),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton(
+                            onPressed: _startListening,
+                            child: Text(_isListening
+                                ? 'Listening...'
+                                : 'Start Navigation'),
+                          ),
+                          if (_directionsSteps.isNotEmpty)
+                            ElevatedButton(
+                              onPressed: _speakCurrentInstruction,
+                              child: Text('Repeat Instruction'),
+                            ),
+                        ],
+                      ),
+                    ],
+                  )
+                : Center(child: CircularProgressIndicator()),
           ),
         ],
       ),

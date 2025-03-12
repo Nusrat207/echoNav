@@ -10,7 +10,8 @@ import 'package:first_pro/screens/second_page.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // Ensure Flutter binding is initialized
+  WidgetsFlutterBinding
+      .ensureInitialized(); // Ensure Flutter binding is initialized
   //init the hive
   await Hive.initFlutter();
 // open a box
@@ -128,7 +129,8 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: _navigateToNextPage,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF610A8A),
-                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 50, vertical: 12),
                 textStyle: const TextStyle(fontSize: 24),
               ),
               child: const Text(
@@ -186,7 +188,8 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
         orElse: () => cameras[0],
       );
       print('Selected camera: ${frontCamera.name}');
-      _cameraController = CameraController(frontCamera, ResolutionPreset.medium);
+      _cameraController =
+          CameraController(frontCamera, ResolutionPreset.medium);
       _initializeControllerFuture = _cameraController.initialize();
       setState(() {});
       print('Camera initialized successfully.');
@@ -212,7 +215,7 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
 
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://192.168.0.103:5000/register'),
+        Uri.parse('http://192.168.238.54:5000/register'),
       );
       request.files.add(await http.MultipartFile.fromPath('image', file.path));
       request.fields['name'] = 'User';
@@ -243,7 +246,9 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
       } else {
         print('Error: ${jsonResponse['error'] ?? 'Unknown error'}');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${jsonResponse['error'] ?? 'Unknown error'}')),
+          SnackBar(
+              content:
+                  Text('Error: ${jsonResponse['error'] ?? 'Unknown error'}')),
         );
       }
     } catch (e) {
@@ -287,7 +292,8 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.done) {
                   print('Camera preview ready.');
-                  _speak("Stay still for 5 seconds while your face is being captured.");
+                  _speak(
+                      "Stay still for 5 seconds while your face is being captured.");
                   _startCaptureTimer();
                   return CameraPreview(_cameraController);
                 }
