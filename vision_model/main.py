@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from langchain_community.chat_message_histories import ChatMessageHistory
 import logging
 import sqlite3
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from fastapi.responses import JSONResponse
 
 load_dotenv()
@@ -48,10 +48,165 @@ init_db()
 # Global variable to store current user ID
 current_user_id = None
 
+def get_all_tasks():
+    """
+    Get all tasks for the currently logged in user.
+    
+    Returns:
+        list: A list of task dictionaries with 'id' and 'title' keys
+        
+    Raises:
+        Exception: If no user is logged in or if there's a database error
+    """
+    global current_user_id
+    
+    if not current_user_id:
+        return {"error": "No user is currently logged in"}
+    
+    try:
+        conn = sqlite3.connect('tasks.db')
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT id, title FROM tasks WHERE user_id = ?", (current_user_id,))
+        tasks_data = cursor.fetchall()
+        
+        conn.close()
+        
+        tasks = [{"id": task[0], "title": task[1]} for task in tasks_data]
+        
+        return {"success": True, "tasks": tasks, "count": len(tasks)}
+    except Exception as e:
+        logging.error(f"Error getting tasks: {e}")
+        return {"error": f"Failed to get tasks: {str(e)}"}
+
+def add_new_task(task_title):
+    """
+    Add a new task for the currently logged in user.
+    
+    Args:
+        task_title (str): The title of the task to add
+        
+    Returns:
+        dict: Information about the added task including its ID
+        
+    Raises:
+        Exception: If no user is logged in, title is empty, or if there's a database error
+    """
+    global current_user_id
+    
+    if not current_user_id:
+        return {"error": "No user is currently logged in"}
+    
+    if not task_title or not isinstance(task_title, str) or task_title.strip() == "":
+        return {"error": "Task title cannot be empty"}
+    
+    try:
+        conn = sqlite3.connect('tasks.db')
+        cursor = conn.cursor()
+        
+        # Check if user exists
+        cursor.execute("SELECT id FROM users WHERE id = ?", (current_user_id,))
+        user = cursor.fetchone()
+        
+        if not user:
+            conn.close()
+            return {"error": "User not found"}
+        
+        # Add task
+        cursor.execute("INSERT INTO tasks (user_id, title) VALUES (?, ?)", 
+                      (current_user_id, task_title.strip()))
+        task_id = cursor.lastrowid
+        conn.commit()
+        
+        conn.close()
+        
+        logging.info(f"Task added for user {current_user_id}: {task_title}")
+        
+        return {
+            "success": True,
+            "task": {
+                "id": task_id,
+                "title": task_title.strip()
+            },
+            "message": "Task added successfully"
+        }
+    except Exception as e:
+        logging.error(f"Error adding task: {e}")
+        return {"error": f"Failed to add task: {str(e)}"}
+
+def delete_task_by_id(task_id):
+    """
+    Delete a specific task for the currently logged in user.
+    
+    Args:
+        task_id (int): The ID of the task to delete
+        
+    Returns:
+        dict: Status of the deletion operation
+        
+    Raises:
+        Exception: If no user is logged in, task doesn't exist, or if there's a database error
+    """
+    global current_user_id
+    
+    if not current_user_id:
+        return {"error": "No user is currently logged in"}
+    
+    try:
+        task_id = int(task_id)  # Ensure task_id is an integer
+    except (ValueError, TypeError):
+        return {"error": "Task ID must be a valid integer"}
+    
+    try:
+        conn = sqlite3.connect('tasks.db')
+        cursor = conn.cursor()
+        
+        # Check if task exists and belongs to the user
+        cursor.execute("SELECT id, title FROM tasks WHERE id = ? AND user_id = ?", 
+                      (task_id, current_user_id))
+        task = cursor.fetchone()
+        
+        if not task:
+            conn.close()
+            return {"error": "Task not found or doesn't belong to the current user"}
+        
+        task_title = task[1]
+        
+        # Delete task
+        cursor.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+        conn.commit()
+        
+        conn.close()
+        
+        logging.info(f"Task {task_id} deleted for user {current_user_id}")
+        
+        return {
+            "success": True,
+            "deleted_task": {
+                "id": task_id,
+                "title": task_title
+            },
+            "message": "Task deleted successfully"
+        }
+    except Exception as e:
+        logging.error(f"Error deleting task: {e}")
+        return {"error": f"Failed to delete task: {str(e)}"}
+
+
+
 # Task model
 class Task(BaseModel):
     id: int
     title: str
+
+class Command(BaseModel):
+    command: str = Field(..., description="The command to classify, either 'add', 'delete', 'list'")
+
+
+class TaskID(BaseModel):
+    task_id: int = Field(..., description="The ID of the task to delete")
+class TaskTitle(BaseModel):
+    task_title: str = Field(..., description="The title of the task to add")
 
 class Assistant:
     def __init__(self, model):
@@ -358,3 +513,77 @@ async def delete_all_tasks():
     logging.info(f"All tasks deleted for user {current_user_id} (count: {deleted_count})")
     
     return {"message": f"Deleted {deleted_count} tasks for user {current_user_id}"}
+
+@app.post("/api/tasks/command")
+async def decice_command(command: str = Form(...)):
+    """
+    Classify the command and return the response
+    """
+    global current_user_id
+
+    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash")
+    llm_with_structured_output = llm.with_structured_output(Command)
+
+    prompt = f"""
+    The user's command is: {command}. Classify if the user wants to add a task, delete a task or wants to hear about all tasks."
+    Only return from these options: 'add', 'delete', 'list'
+    """
+    response = llm_with_structured_output.invoke(prompt)
+
+    if(response.command == "add"):
+        return {"response": "What task would you like to add?", "command": "add"}
+    elif(response.command == "delete"):
+        return {"response": "Which task would you like to delete?", "command": "delete"}
+    elif(response.command == "list"):
+        tasks = get_all_tasks()
+        formatted_response = llm.invoke(f"Keep the answer concise and to the point. User wants to hear about all tasks. Here are all your tasks: {tasks}, only mention titles").content
+        return {"response": formatted_response, "command": "list"}
+
+@app.post("/api/tasks/command/add")
+async def add_task(task_title: str = Form(...)):
+    """
+    Add a new task for the current user
+    """
+    global current_user_id
+
+    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash")
+    llm_with_structured_output = llm.with_structured_output(TaskTitle)
+
+    prompt = f"""
+    The user wants to add a task: {task_title}. output the task title.
+    """
+    response = llm_with_structured_output.invoke(prompt)
+
+    add_new_task(response.task_title)
+
+    return {"response": f"Task added successfully: {response.task_title}"}
+
+@app.post("/api/tasks/command/delete")
+async def delete_task(task_name: str = Form(...)):
+    """
+    Delete a task for the current user
+    """
+    global current_user_id
+
+    all_tasks = get_all_tasks()
+    
+
+    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash")
+    llm_with_structured_output = llm.with_structured_output(TaskID)
+
+    prompt = f"""
+    The user wants to delete a task: {task_name}. output the task id. from this list of all tasks: {all_tasks}
+    """
+    response = llm_with_structured_output.invoke(prompt)
+
+    delete_task_by_id(response.task_id)
+
+    return {"response": f"Task deleted successfully: {response.task_id}"}
+
+
+
+
+
+    
+
+
