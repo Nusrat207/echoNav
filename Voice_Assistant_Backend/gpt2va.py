@@ -21,8 +21,8 @@ from langchain_community.llms import HuggingFaceHub
 logger.remove(0)
 logger.add(sys.stderr, level="DEBUG")
 
-DEEPGRAM_API_KEY = ""
-HUGGINGFACEHUB_API_TOKEN = ""
+DEEPGRAM_API_KEY = "d983b688bb5ee09749accb49cbe70c4453bb7ea1"
+HUGGINGFACEHUB_API_TOKEN = "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"
 
 # model_id = "gpt2-medium"
 model_id = "google/flan-t5-large"

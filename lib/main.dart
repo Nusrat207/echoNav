@@ -7,9 +7,14 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:first_pro/screens/second_page.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Ensure Flutter binding is initialized
+  //init the hive
+  await Hive.initFlutter();
+// open a box
+  var box = await Hive.openBox('Mybox');
   runApp(const MyApp());
 }
 
@@ -299,15 +304,22 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
 }
 
 
+
 /*
 
-//this part runs properly. without face recognition 
+//this part runs properly. without face recognition
 
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:first_pro/screens/second_page.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
-void main() {
+
+void main() async {
+//init the hive
+  await Hive.initFlutter();
+// open a box
+  var box = await Hive.openBox('Mybox');
   runApp(const MyApp());
 }
 
@@ -433,7 +445,5 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
-}
+} 
 */
-
-
