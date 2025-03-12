@@ -49,7 +49,7 @@ class Assistant:
         5. Use specific distances and directions (left/right/front/back)
         6. Prioritize safety-critical information
         7. DON'T say 'current instruction completed' if you determine that the user is not following your instructions or the user is indoors.
-        
+        8. Do not have any special characters in the response as it will be converted to speech.
         Keep responses brief and focused on navigation-relevant details.
         """
 
@@ -144,3 +144,27 @@ async def receive_image(image: str):
     """
     logging.info(f"Received image frame (base64): {image[:30]}...")  # Log first 30 characters for debugging
     return {"message": "Image received, waiting for voice command."}
+
+
+@app.post("/api/ask/voice")
+async def ask_question(prompt: str = Form(...)):
+    """
+    Receive a prompt and an optional base64-encoded image.
+    """
+    # Log the received prompt
+    logging.info(f"Received prompt: {prompt}")
+   
+    if not prompt:
+        return {"response": "No prompt received, camera feed is being ignored."}
+
+    # If a prompt is received, process the image and generate a response
+    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash")
+    instructions = """You're a helpful assistant. 
+    Answer the user's question based on the context provided. 
+    Do not have any special characters in the response as it will be converted to speech.
+    If you don't know the answer, say 'I don't know'.
+    Here is the user's speech: {prompt}"""
+
+    response = llm.invoke(instructions).content
+
+    return {"response": response}
