@@ -163,6 +163,7 @@ async def ask_question(prompt: str = Form(...)):
     Answer the user's question based on the context provided. 
     Do not have any special characters like * or # in the response as it will be converted to speech.
     If you don't know the answer, say 'I don't know'.
+    Do not mention "assistant" in the response.
     Here is the user's speech: {prompt}"""
 
     response = llm.invoke(instructions).content
