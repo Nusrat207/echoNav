@@ -17,13 +17,12 @@ class _TaskManagementState extends State<TaskManagementScreen> {
   bool _isLoading = true;
   final _controller = TextEditingController();
 
-  // Add these new variables for voice interaction
+  // Voice interaction variables
   final FlutterTts _flutterTts = FlutterTts();
   final stt.SpeechToText _speech = stt.SpeechToText();
   bool _isListening = false;
+  bool _isSpeaking = false; // Track when TTS is active
   String _currentCommand = '';
-
-  // Add this variable to store the transcription
   String _transcription = '';
 
   @override
@@ -32,91 +31,151 @@ class _TaskManagementState extends State<TaskManagementScreen> {
     _initializeTts();
     _initializeSpeech();
     _ensureUserLoggedIn().then((_) {
-      // Welcome message after user is logged in and tasks are loaded
       _speakWelcomeMessage();
     });
   }
 
-  // Initialize Text-to-Speech
+  // Initialize Text-to-Speech with completion listener
   Future<void> _initializeTts() async {
     await _flutterTts.setLanguage('en-US');
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
+
+    // Add listeners to track speaking state
+    _flutterTts.setStartHandler(() {
+      setState(() => _isSpeaking = true);
+      print('TTS: Started speaking');
+    });
+
+    _flutterTts.setCompletionHandler(() {
+      setState(() => _isSpeaking = false);
+      print('TTS: Finished speaking');
+    });
+
+    _flutterTts.setErrorHandler((error) {
+      setState(() => _isSpeaking = false);
+      print('TTS Error: $error');
+    });
   }
 
   // Initialize Speech-to-Text
   Future<void> _initializeSpeech() async {
     bool available = await _speech.initialize(
       onStatus: (status) {
-        print('Speech recognition status: $status');
+        print('STT Status: $status');
         if (status == 'done') {
           setState(() => _isListening = false);
         }
       },
       onError: (error) {
-        print('Speech recognition error: $error');
+        print('STT Error: $error');
         setState(() => _isListening = false);
       },
     );
     print('Speech recognition available: $available');
   }
 
-  // Speak welcome message
+  // Speak welcome message and listen after completion
   Future<void> _speakWelcomeMessage() async {
     const message =
         "Would you like an overview of your tasks, or do you want to add or delete a task?";
-    await _speak(message);
-    // Start listening after speaking
-    Future.delayed(Duration(milliseconds: 500), () {
-      _startListening();
-    });
+    await _speakWithListenAfter(message);
   }
 
-  // Speak a message
+  // Enhanced speak method that prevents conflicts
   Future<void> _speak(String message) async {
+    // Don't start speaking if already speaking or listening
+    if (_isSpeaking) {
+      print('Already speaking, stopping current speech');
+      await _flutterTts.stop();
+    }
+
+    if (_isListening) {
+      print('Currently listening, stopping speech recognition');
+      _speech.stop();
+      setState(() => _isListening = false);
+    }
+
+    print('Speaking: $message');
     await _flutterTts.speak(message);
   }
 
-  // Start listening for voice input - updated to show transcription
-  void _startListening() {
-    if (!_isListening) {
-      setState(() {
-        _isListening = true;
-        _transcription = 'Listening...'; // Set initial state
+  // Speak and then listen after a delay
+  Future<void> _speakWithListenAfter(String message,
+      {int delayMs = 500}) async {
+    await _speak(message);
+
+    // Wait for speaking to complete plus a small delay
+    await Future.delayed(Duration(milliseconds: delayMs));
+
+    // Only start listening if we're not still speaking
+    if (!_isSpeaking) {
+      _startListening();
+    } else {
+      // If still speaking, set up a listener to start after completion
+      _flutterTts.setCompletionHandler(() {
+        setState(() => _isSpeaking = false);
+        _startListening();
       });
-
-      _speech.listen(
-        onResult: (result) {
-          setState(() {
-            // Update transcription in real-time
-            _transcription = result.recognizedWords.isEmpty
-                ? 'Listening...'
-                : result.recognizedWords;
-          });
-
-          if (result.finalResult) {
-            final recognizedWords = result.recognizedWords;
-            print('Recognized: $recognizedWords');
-
-            setState(() {
-              _isListening = false;
-              // Keep the final transcription visible
-              _transcription = recognizedWords;
-            });
-
-            if (_currentCommand.isEmpty) {
-              _processInitialCommand(recognizedWords);
-            } else {
-              _processFollowUpCommand(recognizedWords);
-            }
-          }
-        },
-      );
     }
   }
 
-  // Process initial voice command
+  // Start listening with conflict prevention
+  void _startListening() {
+    // Don't start listening if already listening or speaking
+    if (_isListening) {
+      print('Already listening');
+      return;
+    }
+
+    if (_isSpeaking) {
+      print('Currently speaking, stopping TTS before listening');
+      _flutterTts.stop();
+      // Wait a moment for TTS to fully stop
+      Future.delayed(Duration(milliseconds: 200), () {
+        _activateListening();
+      });
+    } else {
+      _activateListening();
+    }
+  }
+
+  // Actual listening activation
+  void _activateListening() {
+    setState(() {
+      _isListening = true;
+      _transcription = 'Listening...';
+    });
+
+    _speech.listen(
+      onResult: (result) {
+        setState(() {
+          _transcription = result.recognizedWords.isEmpty
+              ? 'Listening...'
+              : result.recognizedWords;
+        });
+
+        if (result.finalResult) {
+          final recognizedWords = result.recognizedWords;
+          print('Recognized: $recognizedWords');
+
+          setState(() {
+            _isListening = false;
+            _transcription = recognizedWords;
+          });
+
+          if (_currentCommand.isEmpty) {
+            _processInitialCommand(recognizedWords);
+          } else {
+            _processFollowUpCommand(recognizedWords);
+          }
+        }
+      },
+    );
+  }
+
+  // Process initial voice command - updated to prevent conflicts
   Future<void> _processInitialCommand(String command) async {
     setState(() => _isLoading = true);
 
@@ -132,21 +191,17 @@ class _TaskManagementState extends State<TaskManagementScreen> {
         final responseText = data['response'];
         final commandType = data['command'];
 
-        // Speak the response
-        await _speak(responseText);
-
-        // Store the command type for follow-up
         setState(() {
           _currentCommand = commandType;
           _isLoading = false;
         });
 
-        // If it's a list command, we're done
-        if (commandType != 'list') {
-          // For add or delete, we need to listen for follow-up
-          Future.delayed(Duration(milliseconds: 500), () {
-            _startListening();
-          });
+        // If it's a list command, just speak the response
+        if (commandType == 'list') {
+          await _speak(responseText);
+        } else {
+          // For add or delete, speak and then listen for follow-up
+          await _speakWithListenAfter(responseText);
         }
       } else {
         print('Failed to process command: ${response.body}');
@@ -160,27 +215,44 @@ class _TaskManagementState extends State<TaskManagementScreen> {
     }
   }
 
-  // Process follow-up voice command
+  // Process follow-up voice command - updated to prevent conflicts
   Future<void> _processFollowUpCommand(String command) async {
     setState(() => _isLoading = true);
 
     try {
       String endpoint;
+      String responseMessage;
 
       if (_currentCommand == 'add') {
         endpoint = 'http://192.168.0.103:8000/api/tasks/command/add';
-        await http.post(
+        final response = await http.post(
           Uri.parse(endpoint),
           headers: {'Content-Type': 'application/x-www-form-urlencoded'},
           body: {'task_title': command},
         );
+
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          responseMessage = data['response'];
+        } else {
+          responseMessage = 'Failed to add task.';
+        }
       } else if (_currentCommand == 'delete') {
         endpoint = 'http://192.168.0.103:8000/api/tasks/command/delete';
-        await http.post(
+        final response = await http.post(
           Uri.parse(endpoint),
           headers: {'Content-Type': 'application/x-www-form-urlencoded'},
           body: {'task_name': command},
         );
+
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          responseMessage = data['response'];
+        } else {
+          responseMessage = 'Failed to delete task.';
+        }
+      } else {
+        responseMessage = 'Unknown command.';
       }
 
       // Refresh tasks after command execution
@@ -192,20 +264,17 @@ class _TaskManagementState extends State<TaskManagementScreen> {
         _isLoading = false;
       });
 
-      // Speak confirmation
-      if (_currentCommand == 'add') {
-        await _speak('Task added successfully.');
-      } else if (_currentCommand == 'delete') {
-        await _speak('Task deleted successfully.');
-      }
+      // Speak confirmation and ask if they want to do something else
+      await _speak(responseMessage);
 
-      // Ask if they want to do something else
-      Future.delayed(Duration(milliseconds: 500), () {
-        _speak("Would you like to do something else with your tasks?");
-        Future.delayed(Duration(milliseconds: 500), () {
-          _startListening();
-        });
-      });
+      // Wait a moment before asking the follow-up question
+      await Future.delayed(Duration(milliseconds: 1000));
+
+      // Only ask follow-up if not already speaking
+      if (!_isSpeaking) {
+        await _speakWithListenAfter(
+            "Would you like to do something else with your tasks?");
+      }
     } catch (e) {
       print('Error processing follow-up command: $e');
       setState(() {
@@ -477,9 +546,15 @@ class _TaskManagementState extends State<TaskManagementScreen> {
             },
           ),
           IconButton(
-            icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
+            icon: Icon(
+              _isListening
+                  ? Icons.mic
+                  : (_isSpeaking ? Icons.volume_up : Icons.mic_none),
+            ),
             onPressed: _startListening,
-            color: _isListening ? Colors.red : null,
+            color: _isListening
+                ? Colors.red
+                : (_isSpeaking ? Colors.orange : Colors.blue),
           ),
         ],
       ),
@@ -514,12 +589,20 @@ class _TaskManagementState extends State<TaskManagementScreen> {
                     Row(
                       children: [
                         Icon(
-                          _isListening ? Icons.mic : Icons.mic_none,
-                          color: _isListening ? Colors.red : Colors.blue,
+                          _isListening
+                              ? Icons.mic
+                              : (_isSpeaking
+                                  ? Icons.volume_up
+                                  : Icons.mic_none),
+                          color: _isListening
+                              ? Colors.red
+                              : (_isSpeaking ? Colors.orange : Colors.blue),
                         ),
                         SizedBox(width: 8),
                         Text(
-                          'Voice Input:',
+                          _isListening
+                              ? 'Listening...'
+                              : (_isSpeaking ? 'Speaking...' : 'Voice Input:'),
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -558,7 +641,9 @@ class _TaskManagementState extends State<TaskManagementScreen> {
                       ),
                       child: Text(
                         _transcription.isEmpty
-                            ? 'Tap the microphone to speak'
+                            ? (_isSpeaking
+                                ? 'Speaking...'
+                                : 'Tap the microphone to speak')
                             : _transcription,
                         style: TextStyle(
                           fontSize: 18,
