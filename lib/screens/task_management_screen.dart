@@ -512,6 +512,9 @@ class _TaskManagementState extends State<TaskManagementScreen> {
 
   // Create a new task dialog
   void _showAddTaskDialog() {
+    // Define our primary color
+    final Color primaryColor = const Color(0xFF610A8A);
+
     showDialog(
       context: context,
       builder: (context) {
@@ -519,7 +522,7 @@ class _TaskManagementState extends State<TaskManagementScreen> {
           title: Text(
             'Add New Task',
             style: TextStyle(
-              color: Colors.indigo.shade800,
+              color: primaryColor,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -538,7 +541,7 @@ class _TaskManagementState extends State<TaskManagementScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.indigo, width: 2),
+                borderSide: BorderSide(color: primaryColor, width: 2),
               ),
             ),
             autofocus: true,
@@ -553,7 +556,7 @@ class _TaskManagementState extends State<TaskManagementScreen> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.indigo,
+                backgroundColor: primaryColor,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -577,13 +580,20 @@ class _TaskManagementState extends State<TaskManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Define our primary color and its variants
+    final Color primaryColor = const Color(0xFF610A8A);
+    final Color primaryLightColor = const Color(0xFF8C42B3); // Lighter variant
+    final Color primaryVeryLightColor =
+        const Color(0xFFF0E5F5); // Very light variant
+    final Color primaryDarkColor = const Color(0xFF4A0873); // Darker variant
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
           'Task Management',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.indigo,
+        backgroundColor: primaryColor,
         foregroundColor: Colors.white,
         elevation: 2,
         actions: [
@@ -639,7 +649,7 @@ class _TaskManagementState extends State<TaskManagementScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddTaskDialog,
         child: Icon(Icons.add),
-        backgroundColor: Colors.indigo,
+        backgroundColor: primaryColor,
         tooltip: 'Add Task',
       ),
       body: Container(
@@ -647,7 +657,7 @@ class _TaskManagementState extends State<TaskManagementScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Colors.indigo.shade50, Colors.white],
+            colors: [primaryVeryLightColor, Colors.white],
           ),
         ),
         child: Column(
@@ -678,7 +688,7 @@ class _TaskManagementState extends State<TaskManagementScreen> {
                           ? Colors.red.shade50
                           : (_isSpeaking
                               ? Colors.orange.shade50
-                              : Colors.indigo.shade50),
+                              : primaryVeryLightColor),
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(16),
                         topRight: Radius.circular(16),
@@ -688,7 +698,7 @@ class _TaskManagementState extends State<TaskManagementScreen> {
                             ? Colors.red.shade200
                             : (_isSpeaking
                                 ? Colors.orange.shade200
-                                : Colors.indigo.shade200),
+                                : primaryLightColor.withOpacity(0.3)),
                         width: 1,
                       ),
                     ),
@@ -702,7 +712,7 @@ class _TaskManagementState extends State<TaskManagementScreen> {
                                   : Icons.mic_none),
                           color: _isListening
                               ? Colors.red
-                              : (_isSpeaking ? Colors.orange : Colors.indigo),
+                              : (_isSpeaking ? Colors.orange : primaryColor),
                           size: 24,
                         ),
                         SizedBox(width: 12),
@@ -719,7 +729,7 @@ class _TaskManagementState extends State<TaskManagementScreen> {
                                 ? Colors.red.shade700
                                 : (_isSpeaking
                                     ? Colors.orange.shade700
-                                    : Colors.indigo.shade700),
+                                    : primaryDarkColor),
                           ),
                         ),
                         if (_currentCommand.isNotEmpty)
@@ -739,7 +749,7 @@ class _TaskManagementState extends State<TaskManagementScreen> {
                                     ? Colors.green
                                     : _currentCommand == 'delete'
                                         ? Colors.red
-                                        : Colors.blue,
+                                        : primaryColor,
                                 padding: EdgeInsets.symmetric(horizontal: 8),
                               ),
                             ),
@@ -811,7 +821,7 @@ class _TaskManagementState extends State<TaskManagementScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.indigo.shade800,
+                      color: primaryDarkColor,
                     ),
                   ),
                   Text(
@@ -830,7 +840,7 @@ class _TaskManagementState extends State<TaskManagementScreen> {
               child: _isLoading
                   ? Center(
                       child: CircularProgressIndicator(
-                        color: Colors.indigo,
+                        color: primaryColor,
                       ),
                     )
                   : _tasks.isEmpty
@@ -841,14 +851,14 @@ class _TaskManagementState extends State<TaskManagementScreen> {
                               Icon(
                                 Icons.task_alt,
                                 size: 64,
-                                color: Colors.grey.shade300,
+                                color: primaryLightColor.withOpacity(0.3),
                               ),
                               SizedBox(height: 16),
                               Text(
                                 'No tasks yet',
                                 style: TextStyle(
                                   fontSize: 18,
-                                  color: Colors.grey.shade600,
+                                  color: primaryColor.withOpacity(0.7),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -881,11 +891,11 @@ class _TaskManagementState extends State<TaskManagementScreen> {
                                   vertical: 8,
                                 ),
                                 leading: CircleAvatar(
-                                  backgroundColor: Colors.indigo.shade100,
+                                  backgroundColor: primaryVeryLightColor,
                                   child: Text(
                                     '${index + 1}',
                                     style: TextStyle(
-                                      color: Colors.indigo.shade800,
+                                      color: primaryDarkColor,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
