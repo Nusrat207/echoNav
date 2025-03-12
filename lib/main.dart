@@ -1,3 +1,4 @@
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -10,11 +11,10 @@ import 'package:first_pro/screens/second_page.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 void main() async {
-  WidgetsFlutterBinding
-      .ensureInitialized(); // Ensure Flutter binding is initialized
-  //init the hive
+  WidgetsFlutterBinding.ensureInitialized(); // Ensure Flutter binding is initialized
+  // Initialize Hive
   await Hive.initFlutter();
-// open a box
+  // Open a box
   var box = await Hive.openBox('Mybox');
   runApp(const MyApp());
 }
@@ -54,7 +54,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<bool> _checkLoginStatus() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('userId');
+      //await prefs.remove('userId');
       //await prefs.setString('userId', "abc");
       final userId = prefs.getString('userId');
       return userId != null;
@@ -84,68 +84,68 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 210.0,
-        title: SizedBox(
-          height: 210.0,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              const Text(
-                'Welcome to EchoNav',
-                style: TextStyle(
-                  fontSize: 40,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF610A8A),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Navigate, Detect, and Connect with ease',
-                style: TextStyle(
-                  fontSize: 20,
-                  color: Colors.purple[200],
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      body: Center(
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      toolbarHeight: 210.0,
+      title: Center(  // Center the content inside the AppBar
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Image.asset(
-              'assets/image.jpg',
-              width: 300,
-              height: 401,
-              fit: BoxFit.cover,
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _navigateToNextPage,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF610A8A),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 50, vertical: 12),
-                textStyle: const TextStyle(fontSize: 24),
+          crossAxisAlignment: CrossAxisAlignment.center,  // Ensure horizontal centering as well
+          children: [
+            const Text(
+              'Welcome to EchoNav',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF610A8A),
               ),
-              child: const Text(
-                'Get Started',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Navigate, Detect, and Connect with ease',
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.purple[200],
+                fontStyle: FontStyle.italic,
               ),
             ),
           ],
         ),
       ),
-    );
-  }
+    ),
+    body: Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Image.asset(
+            'assets/image.jpg',
+            width: 300,
+            height: 401,
+            fit: BoxFit.cover,
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: _navigateToNextPage,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF610A8A),
+              padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 12),
+              textStyle: const TextStyle(fontSize: 24),
+            ),
+            child: const Text(
+              'Get Started',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 }
 
 class FaceAuthScreen extends StatefulWidget {
@@ -188,10 +188,9 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
         orElse: () => cameras[0],
       );
       print('Selected camera: ${frontCamera.name}');
-      _cameraController =
-          CameraController(frontCamera, ResolutionPreset.medium);
+      _cameraController = CameraController(frontCamera, ResolutionPreset.medium);
       _initializeControllerFuture = _cameraController.initialize();
-      setState(() {});
+      setState(() {});  // Update UI once camera is initialized
       print('Camera initialized successfully.');
     } catch (e) {
       print('Error initializing camera: $e');
@@ -215,7 +214,7 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
 
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://192.168.0.103:5000/register'),
+        Uri.parse('http://192.168.0.101:5000/register'),
       );
       request.files.add(await http.MultipartFile.fromPath('image', file.path));
       request.fields['name'] = 'User';
@@ -246,9 +245,7 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
       } else {
         print('Error: ${jsonResponse['error'] ?? 'Unknown error'}');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content:
-                  Text('Error: ${jsonResponse['error'] ?? 'Unknown error'}')),
+          SnackBar(content: Text('Error: ${jsonResponse['error'] ?? 'Unknown error'}')),
         );
       }
     } catch (e) {
@@ -286,18 +283,22 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Face Authentication')),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator()) // Show loading indicator when image is being processed
           : FutureBuilder<void>(
               future: _initializeControllerFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.done) {
                   print('Camera preview ready.');
-                  _speak(
-                      "Stay still for 5 seconds while your face is being captured.");
+                  _speak("Stay still for 5 seconds while your face is being captured.");
                   _startCaptureTimer();
                   return CameraPreview(_cameraController);
+                } else if (snapshot.connectionState == ConnectionState.waiting) {
+                  // Show a loading spinner while waiting for camera initialization
+                  return const Center(child: CircularProgressIndicator());
+                } else {
+                  // Handle other states (like errors)
+                  return const Center(child: Text('Failed to initialize camera.'));
                 }
-                return const Center(child: CircularProgressIndicator());
               },
             ),
       floatingActionButton: FloatingActionButton(
@@ -308,6 +309,7 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
     );
   }
 }
+
 
 
 
