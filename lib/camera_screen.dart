@@ -1,7 +1,7 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'face_recognition.dart';
-import 'package:first_pro/screens/second_page.dart';
+import 'package:echoNav/screens/second_page.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});

@@ -1,4 +1,4 @@
-import 'dart:async';
+/*import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -302,13 +302,14 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
     );
   }
 }
+*/
 
-/*
 //this part runs properly. without face recognition
 
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:echoNav/screens/second_page.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 void main() async {
 //init the hive
