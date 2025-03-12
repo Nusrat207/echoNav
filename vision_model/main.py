@@ -625,7 +625,7 @@ async def delete_task(task_name: str = Form(...)):
 
     delete_task_by_id(response.task_id)
 
-    return {"response": f"Task deleted successfully: {response.task_id}"}
+    return {"response": f"Task deleted successfully"}
 
 
 

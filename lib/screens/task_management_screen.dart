@@ -175,7 +175,7 @@ class _TaskManagementState extends State<TaskManagementScreen> {
     );
   }
 
-  // Process initial voice command - updated to prevent conflicts
+  // Process initial voice command - fixed to prevent duplicate prompts
   Future<void> _processInitialCommand(String command) async {
     setState(() => _isLoading = true);
 
@@ -196,12 +196,46 @@ class _TaskManagementState extends State<TaskManagementScreen> {
           _isLoading = false;
         });
 
-        // If it's a list command, just speak the response
-        if (commandType == 'list') {
-          await _speak(responseText);
+        // Use the same approach for all command types to ensure consistency
+        await _speak(responseText);
+
+        // Only start listening for follow-up if it's add or delete
+        if (commandType != 'list') {
+          // Wait for speaking to complete before listening
+          await Future.delayed(Duration(milliseconds: 500));
+          if (!_isSpeaking) {
+            _startListening();
+          } else {
+            // If still speaking, wait for completion
+            _flutterTts.setCompletionHandler(() {
+              setState(() => _isSpeaking = false);
+              _startListening();
+
+              // Reset the completion handler to the default
+              _flutterTts.setCompletionHandler(() {
+                setState(() => _isSpeaking = false);
+              });
+            });
+          }
         } else {
-          // For add or delete, speak and then listen for follow-up
-          await _speakWithListenAfter(responseText);
+          // For list command, ask if they want to do something else after a delay
+          await Future.delayed(Duration(milliseconds: 1000));
+          if (!_isSpeaking) {
+            await _speakWithListenAfter(
+                "Would you like to do something else with your tasks?");
+          } else {
+            // If still speaking, wait for completion
+            _flutterTts.setCompletionHandler(() {
+              setState(() => _isSpeaking = false);
+              _speakWithListenAfter(
+                  "Would you like to do something else with your tasks?");
+
+              // Reset the completion handler to the default
+              _flutterTts.setCompletionHandler(() {
+                setState(() => _isSpeaking = false);
+              });
+            });
+          }
         }
       } else {
         print('Failed to process command: ${response.body}');
