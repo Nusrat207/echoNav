@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class TaskManagementScreen extends StatefulWidget {
   const TaskManagementScreen({super.key});
@@ -15,10 +17,201 @@ class _TaskManagementState extends State<TaskManagementScreen> {
   bool _isLoading = true;
   final _controller = TextEditingController();
 
+  // Add these new variables for voice interaction
+  final FlutterTts _flutterTts = FlutterTts();
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _isListening = false;
+  String _currentCommand = '';
+
+  // Add this variable to store the transcription
+  String _transcription = '';
+
   @override
   void initState() {
     super.initState();
-    _ensureUserLoggedIn();
+    _initializeTts();
+    _initializeSpeech();
+    _ensureUserLoggedIn().then((_) {
+      // Welcome message after user is logged in and tasks are loaded
+      _speakWelcomeMessage();
+    });
+  }
+
+  // Initialize Text-to-Speech
+  Future<void> _initializeTts() async {
+    await _flutterTts.setLanguage('en-US');
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+  }
+
+  // Initialize Speech-to-Text
+  Future<void> _initializeSpeech() async {
+    bool available = await _speech.initialize(
+      onStatus: (status) {
+        print('Speech recognition status: $status');
+        if (status == 'done') {
+          setState(() => _isListening = false);
+        }
+      },
+      onError: (error) {
+        print('Speech recognition error: $error');
+        setState(() => _isListening = false);
+      },
+    );
+    print('Speech recognition available: $available');
+  }
+
+  // Speak welcome message
+  Future<void> _speakWelcomeMessage() async {
+    const message =
+        "Would you like an overview of your tasks, or do you want to add or delete a task?";
+    await _speak(message);
+    // Start listening after speaking
+    Future.delayed(Duration(milliseconds: 500), () {
+      _startListening();
+    });
+  }
+
+  // Speak a message
+  Future<void> _speak(String message) async {
+    await _flutterTts.speak(message);
+  }
+
+  // Start listening for voice input - updated to show transcription
+  void _startListening() {
+    if (!_isListening) {
+      // Clear previous transcription when starting to listen
+      setState(() {
+        _isListening = true;
+        _transcription = 'Listening...';
+      });
+
+      _speech.listen(
+        onResult: (result) {
+          setState(() {
+            // Update transcription in real-time as words are recognized
+            _transcription = result.recognizedWords;
+          });
+
+          if (result.finalResult) {
+            setState(() {
+              _isListening = false;
+              final recognizedWords = result.recognizedWords;
+              print('Recognized: $recognizedWords');
+
+              if (_currentCommand.isEmpty) {
+                // Initial command processing
+                _processInitialCommand(recognizedWords);
+              } else {
+                // Follow-up command processing
+                _processFollowUpCommand(recognizedWords);
+              }
+            });
+          }
+        },
+      );
+    }
+  }
+
+  // Process initial voice command
+  Future<void> _processInitialCommand(String command) async {
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://192.168.0.103:8000/api/tasks/command'),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: {'command': command},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final responseText = data['response'];
+        final commandType = data['command'];
+
+        // Speak the response
+        await _speak(responseText);
+
+        // Store the command type for follow-up
+        setState(() {
+          _currentCommand = commandType;
+          _isLoading = false;
+        });
+
+        // If it's a list command, we're done
+        if (commandType != 'list') {
+          // For add or delete, we need to listen for follow-up
+          Future.delayed(Duration(milliseconds: 500), () {
+            _startListening();
+          });
+        }
+      } else {
+        print('Failed to process command: ${response.body}');
+        setState(() => _isLoading = false);
+        await _speak('Sorry, I had trouble understanding that command.');
+      }
+    } catch (e) {
+      print('Error processing command: $e');
+      setState(() => _isLoading = false);
+      await _speak('Sorry, there was an error processing your command.');
+    }
+  }
+
+  // Process follow-up voice command
+  Future<void> _processFollowUpCommand(String command) async {
+    setState(() => _isLoading = true);
+
+    try {
+      String endpoint;
+
+      if (_currentCommand == 'add') {
+        endpoint = 'http://192.168.0.103:8000/api/tasks/command/add';
+        await http.post(
+          Uri.parse(endpoint),
+          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+          body: {'task_title': command},
+        );
+      } else if (_currentCommand == 'delete') {
+        endpoint = 'http://192.168.0.103:8000/api/tasks/command/delete';
+        await http.post(
+          Uri.parse(endpoint),
+          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+          body: {'task_name': command},
+        );
+      }
+
+      // Refresh tasks after command execution
+      await _fetchTasks();
+
+      // Reset current command
+      setState(() {
+        _currentCommand = '';
+        _isLoading = false;
+      });
+
+      // Speak confirmation
+      if (_currentCommand == 'add') {
+        await _speak('Task added successfully.');
+      } else if (_currentCommand == 'delete') {
+        await _speak('Task deleted successfully.');
+      }
+
+      // Ask if they want to do something else
+      Future.delayed(Duration(milliseconds: 500), () {
+        _speak("Would you like to do something else with your tasks?");
+        Future.delayed(Duration(milliseconds: 500), () {
+          _startListening();
+        });
+      });
+    } catch (e) {
+      print('Error processing follow-up command: $e');
+      setState(() {
+        _currentCommand = '';
+        _isLoading = false;
+      });
+      await _speak('Sorry, there was an error processing your request.');
+    }
   }
 
   // Ensure user is logged in before fetching tasks
@@ -247,12 +440,6 @@ class _TaskManagementState extends State<TaskManagementScreen> {
   }
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -287,29 +474,121 @@ class _TaskManagementState extends State<TaskManagementScreen> {
               );
             },
           ),
+          IconButton(
+            icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
+            onPressed: _startListening,
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddTaskDialog,
         child: Icon(Icons.add),
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : _tasks.isEmpty
-              ? Center(child: Text('No tasks yet. Add some!'))
-              : ListView.builder(
-                  itemCount: _tasks.length,
-                  itemBuilder: (context, index) {
-                    final task = _tasks[index];
-                    return ListTile(
-                      title: Text(task['title']),
-                      trailing: IconButton(
-                        icon: Icon(Icons.delete),
-                        onPressed: () => _deleteTask(task['id']),
+      body: Stack(
+        children: [
+          Column(
+            children: [
+              // Transcription display area
+              if (_transcription.isNotEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(16),
+                  color: Colors.grey[200],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Voice Input:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                        ),
                       ),
-                    );
-                  },
+                      SizedBox(height: 4),
+                      Text(
+                        _transcription,
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      if (_currentCommand.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            'Current mode: ${_currentCommand.toUpperCase()}',
+                            style: TextStyle(
+                              fontStyle: FontStyle.italic,
+                              color: _currentCommand == 'add'
+                                  ? Colors.green[700]
+                                  : _currentCommand == 'delete'
+                                      ? Colors.red[700]
+                                      : Colors.blue[700],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
+
+              // Task list - now in an Expanded widget to take remaining space
+              Expanded(
+                child: _isLoading
+                    ? Center(child: CircularProgressIndicator())
+                    : _tasks.isEmpty
+                        ? Center(child: Text('No tasks yet. Add some!'))
+                        : ListView.builder(
+                            itemCount: _tasks.length,
+                            itemBuilder: (context, index) {
+                              final task = _tasks[index];
+                              return ListTile(
+                                title: Text(task['title']),
+                                trailing: IconButton(
+                                  icon: Icon(Icons.delete),
+                                  onPressed: () => _deleteTask(task['id']),
+                                ),
+                              );
+                            },
+                          ),
+              ),
+            ],
+          ),
+
+          // Listening indicator
+          if (_isListening)
+            Positioned(
+              bottom: 24,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.mic, color: Colors.white),
+                      SizedBox(width: 8),
+                      Text('Listening...',
+                          style: TextStyle(color: Colors.white)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _flutterTts.stop();
+    super.dispose();
   }
 }
