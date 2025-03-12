@@ -81,33 +81,35 @@ class _TaskManagementState extends State<TaskManagementScreen> {
   // Start listening for voice input - updated to show transcription
   void _startListening() {
     if (!_isListening) {
-      // Clear previous transcription when starting to listen
       setState(() {
         _isListening = true;
-        _transcription = 'Listening...';
+        _transcription = 'Listening...'; // Set initial state
       });
 
       _speech.listen(
         onResult: (result) {
           setState(() {
-            // Update transcription in real-time as words are recognized
-            _transcription = result.recognizedWords;
+            // Update transcription in real-time
+            _transcription = result.recognizedWords.isEmpty
+                ? 'Listening...'
+                : result.recognizedWords;
           });
 
           if (result.finalResult) {
+            final recognizedWords = result.recognizedWords;
+            print('Recognized: $recognizedWords');
+
             setState(() {
               _isListening = false;
-              final recognizedWords = result.recognizedWords;
-              print('Recognized: $recognizedWords');
-
-              if (_currentCommand.isEmpty) {
-                // Initial command processing
-                _processInitialCommand(recognizedWords);
-              } else {
-                // Follow-up command processing
-                _processFollowUpCommand(recognizedWords);
-              }
+              // Keep the final transcription visible
+              _transcription = recognizedWords;
             });
+
+            if (_currentCommand.isEmpty) {
+              _processInitialCommand(recognizedWords);
+            } else {
+              _processFollowUpCommand(recognizedWords);
+            }
           }
         },
       );
@@ -477,6 +479,7 @@ class _TaskManagementState extends State<TaskManagementScreen> {
           IconButton(
             icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
             onPressed: _startListening,
+            color: _isListening ? Colors.red : null,
           ),
         ],
       ),
@@ -488,49 +491,86 @@ class _TaskManagementState extends State<TaskManagementScreen> {
         children: [
           Column(
             children: [
-              // Transcription display area
-              if (_transcription.isNotEmpty)
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(16),
-                  color: Colors.grey[200],
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Voice Input:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: Colors.grey[700],
+              // TRANSCRIPTION CARD - Very visible at the top
+              Container(
+                width: double.infinity,
+                margin: EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 5,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          _isListening ? Icons.mic : Icons.mic_none,
+                          color: _isListening ? Colors.red : Colors.blue,
                         ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        _transcription,
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      if (_currentCommand.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Text(
-                            'Current mode: ${_currentCommand.toUpperCase()}',
-                            style: TextStyle(
-                              fontStyle: FontStyle.italic,
-                              color: _currentCommand == 'add'
-                                  ? Colors.green[700]
-                                  : _currentCommand == 'delete'
-                                      ? Colors.red[700]
-                                      : Colors.blue[700],
-                            ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Voice Input:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
                           ),
                         ),
-                    ],
-                  ),
+                        if (_currentCommand.isNotEmpty)
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Chip(
+                                label: Text(
+                                  _currentCommand.toUpperCase(),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                backgroundColor: _currentCommand == 'add'
+                                    ? Colors.green
+                                    : _currentCommand == 'delete'
+                                        ? Colors.red
+                                        : Colors.blue,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Text(
+                        _transcription.isEmpty
+                            ? 'Tap the microphone to speak'
+                            : _transcription,
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: _transcription.isEmpty
+                              ? Colors.grey
+                              : Colors.black87,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+              ),
 
               // Task list - now in an Expanded widget to take remaining space
               Expanded(
@@ -554,32 +594,6 @@ class _TaskManagementState extends State<TaskManagementScreen> {
               ),
             ],
           ),
-
-          // Listening indicator
-          if (_isListening)
-            Positioned(
-              bottom: 24,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.mic, color: Colors.white),
-                      SizedBox(width: 8),
-                      Text('Listening...',
-                          style: TextStyle(color: Colors.white)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );

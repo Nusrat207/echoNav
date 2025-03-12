@@ -12,6 +12,7 @@ import logging
 import sqlite3
 from pydantic import BaseModel, Field
 from fastapi.responses import JSONResponse
+from google import genai
 
 load_dotenv()
 
@@ -21,6 +22,10 @@ app = FastAPI()
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
+client = genai.Client(api_key="AIzaSyB-OUt62LxGvYxln6lJnXFWaRi4EOEQAPg")
+response = client.models.generate_content(
+    model="gemini-2.0-flash", contents="Explain how AI works"
+)
 # Initialize SQLite database
 def init_db():
     conn = sqlite3.connect('tasks.db')
@@ -519,16 +524,38 @@ async def decice_command(command: str = Form(...)):
     """
     Classify the command and return the response
     """
+    print("--------------------------------")
+    print(f"Received command: {command}")
+    print("--------------------------------")
     global current_user_id
 
     llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash")
     llm_with_structured_output = llm.with_structured_output(Command)
 
     prompt = f"""
-    The user's command is: {command}. Classify if the user wants to add a task, delete a task or wants to hear about all tasks."
+    The user's said: {command}. Classify if the user wants to add a task, delete a task or wants to hear about all tasks."
     Only return from these options: 'add', 'delete', 'list'
+    add: if the user wants to add a task
+    delete: if the user wants to delete a task
+    list: if the user wants to hear about all tasks, or wants an overview of all tasks
     """
-    response = llm_with_structured_output.invoke(prompt)
+    # response = llm_with_structured_output.invoke(prompt)
+
+    response = genai.Client().models.generate_content(
+        model='gemini-2.0-flash',
+        contents=prompt,
+         config={
+        'temperature': 1,
+        'response_mime_type': 'application/json',
+        'response_schema': Command,
+        },
+    )
+
+    response = response.parsed
+
+    print("--------------------------------")
+    print(f"Response command detected: {response.command}")
+    print("--------------------------------")
 
     if(response.command == "add"):
         return {"response": "What task would you like to add?", "command": "add"}
@@ -552,7 +579,17 @@ async def add_task(task_title: str = Form(...)):
     prompt = f"""
     The user wants to add a task: {task_title}. output the task title.
     """
-    response = llm_with_structured_output.invoke(prompt)
+    response = genai.Client().models.generate_content(
+    model='gemini-2.0-flash',
+    contents=prompt,
+        config={
+    'temperature': 1,
+    'response_mime_type': 'application/json',
+    'response_schema': TaskTitle,
+    },
+    )
+
+    response = response.parsed
 
     add_new_task(response.task_title)
 
@@ -574,7 +611,17 @@ async def delete_task(task_name: str = Form(...)):
     prompt = f"""
     The user wants to delete a task: {task_name}. output the task id. from this list of all tasks: {all_tasks}
     """
-    response = llm_with_structured_output.invoke(prompt)
+    response = genai.Client().models.generate_content(
+    model='gemini-2.0-flash',
+    contents=prompt,
+        config={
+    'temperature': 1,
+    'response_mime_type': 'application/json',
+    'response_schema': TaskID,
+    },
+    )
+
+    response = response.parsed
 
     delete_task_by_id(response.task_id)
 
