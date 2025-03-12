@@ -109,14 +109,14 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
       try {
         await _speech.listen(
           onResult: (result) async {
-            if (result.finalResult) {
-              // Process the voice input to get destination
-              final text = result.recognizedWords;
+            setState(() {
+              _recognizedText = result.recognizedWords;
+            });
 
-              // Only process if there's actual text to process
-              if (text.isNotEmpty) {
-                await _processVoiceInput(text);
-              }
+            // If the result is final, process it immediately
+            if (result.finalResult && _recognizedText.isNotEmpty) {
+              _stopListening(); // Stop current listening
+              await _processVoiceInput(_recognizedText); // Process immediately
 
               // Restart listening after a short delay
               if (!_isDisposed) {
@@ -128,9 +128,6 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
           cancelOnError: false,
           listenMode: stt.ListenMode.confirmation,
         );
-
-        // Uncomment for testing with a default destination
-        // await _processVoiceInput("Bangladesh open university");
       } catch (error) {
         print('Error during speech recognition: $error');
         setState(() => _isListening = false);
@@ -144,8 +141,18 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
     }
   }
 
+  void _stopListening() {
+    _speech.stop();
+    setState(() {
+      _isListening = false;
+    });
+  }
+
   Future<void> _processVoiceInput(String text) async {
     try {
+      // Announce that we're navigating to the requested location
+      await _tts.speak("Navigating to " + text);
+
       final geocodingUrl =
           'https://maps.googleapis.com/maps/api/geocode/json?address=${Uri.encodeComponent(text)}&key=AIzaSyDF2rKGbY2nhUoe1rKcI3DhUKM_HZu2oUY';
       final response = await http.get(Uri.parse(geocodingUrl));
@@ -441,19 +448,50 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
                         padding: EdgeInsets.all(8.0),
                         child: Text(_navigationInstructions),
                       ),
+                      // Voice command display
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Text(
+                            "Voice Command: $_recognizedText",
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                      // Buttons row
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           ElevatedButton(
-                            onPressed: _startListening,
-                            child: Text(_isListening
-                                ? 'Listening...'
-                                : 'Start Navigation'),
+                            onPressed:
+                                _isListening ? _stopListening : _startListening,
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.all(8.0),
+                            ),
+                            child: Icon(_isListening ? Icons.stop : Icons.mic),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              if (_recognizedText.isNotEmpty) {
+                                _processVoiceInput(_recognizedText);
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.all(8.0),
+                            ),
+                            child: const Icon(Icons.send),
                           ),
                           if (_directionsSteps.isNotEmpty)
                             ElevatedButton(
                               onPressed: _speakCurrentInstruction,
-                              child: Text('Repeat Instruction'),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.all(8.0),
+                              ),
+                              child: const Icon(Icons.volume_up),
                             ),
                         ],
                       ),
