@@ -1,11 +1,7 @@
-import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'package:flutter_tts/flutter_tts.dart';
-import 'package:audioplayers/audioplayers.dart';
-import 'package:first_pro/data/database.dart';
-import 'package:first_pro/utils/dialog_box.dart';
-import 'package:first_pro/utils/taskM_tile.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TaskManagementScreen extends StatefulWidget {
   const TaskManagementScreen({super.key});
@@ -15,184 +11,305 @@ class TaskManagementScreen extends StatefulWidget {
 }
 
 class _TaskManagementState extends State<TaskManagementScreen> {
-  // Reference the hive box
-  final _mybox = Hive.box('Mybox');
-  TodoDatabase db = TodoDatabase();
-
-  // STT and TTS variables
-  late stt.SpeechToText _speechToText;
-  late FlutterTts _flutterTts;
-  bool isListening = false;
-  bool isTtsSpeaking = false;
-  String recognizedText = "Press the button & speak";
-  final AudioPlayer _audioPlayer = AudioPlayer();
-
-  // Text controller
+  List<Map<String, dynamic>> _tasks = [];
+  bool _isLoading = true;
   final _controller = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    _ensureUserLoggedIn();
+  }
 
-    // Initialize Hive data
-    if (_mybox.get("TASKMANAGER") == null) {
-      db.createInitialData();
+  // Ensure user is logged in before fetching tasks
+  Future<void> _ensureUserLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId');
+
+    if (userId != null) {
+      // Send login request to ensure current_user_id is set on backend
+      await _loginUser(userId);
+      // Then fetch tasks
+      await _fetchTasks();
     } else {
-      db.loadData();
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('User ID not found. Please log in first.')),
+      );
     }
-
-    // Initialize STT and TTS
-    _speechToText = stt.SpeechToText();
-    _flutterTts = FlutterTts();
-
-    _flutterTts.setCompletionHandler(() async {
-      await _playBeepSound();
-      _startListening();
-    });
   }
 
-  @override
-  void dispose() {
-    _flutterTts.stop();
-    _speechToText.stop();
-    super.dispose();
-  }
+  // Login user to set current_user_id on backend
+  Future<void> _loginUser(String userId) async {
+    try {
+      var formData = {
+        'user_id': userId,
+      };
 
-  Future<void> _playBeepSound() async {
-    await _audioPlayer.play(AssetSource('assets/sounds/beep.mp3'));
-  }
+      final response = await http.post(
+        Uri.parse('http://192.168.0.103:8000/api/login'),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: formData,
+      );
 
-  Future<void> _startListening() async {
-    if (!isListening) {
-      bool available = await _speechToText.initialize();
-      if (available) {
-        setState(() => isListening = true);
-        _speechToText.listen(
-          onResult: (result) {
-            setState(() {
-              recognizedText = result.recognizedWords;
-              if (result.hasConfidenceRating && result.confidence > 0) {
-                print('Confidence: ${result.confidence}');
-              }
-              print('Recognized: $recognizedText');
-              _handleVoiceCommand(recognizedText.toLowerCase());
-            });
-          },
+      if (response.statusCode != 200) {
+        print('Failed to login: ${response.body}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to login')),
         );
-      } else {
-        print("Speech recognition not available");
       }
+    } catch (e) {
+      print('Error logging in: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error logging in: $e')),
+      );
     }
   }
 
-  void _handleVoiceCommand(String command) {
-    if (command.contains('add task') || command.contains('create task')) {
-      _speak("What is the task?");
-      _startListening();
-    } else if (command.contains('delete task')) {
-      _speak("Which task would you like to delete?");
-      _startListening();
-    } else if (command.contains('mark task')) {
-      _speak("Which task would you like to mark as completed?");
-      _startListening();
-    } else {
-      _speak("I didn't understand. Please try again.");
+  // Fetch tasks from backend
+  Future<void> _fetchTasks() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse('http://192.168.0.103:8000/api/tasks'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _tasks = List<Map<String, dynamic>>.from(data['tasks']);
+          _isLoading = false;
+        });
+      } else {
+        print('Failed to load tasks: ${response.body}');
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load tasks')),
+        );
+      }
+    } catch (e) {
+      print('Error fetching tasks: $e');
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading tasks: $e')),
+      );
     }
   }
 
-  Future<void> _speak(String text) async {
-    await _flutterTts.setLanguage("en-US");
-    await _flutterTts.setSpeechRate(0.5);
-    await _flutterTts.setVolume(1.0);
-    await _flutterTts.setPitch(1.0);
-    await _flutterTts.speak(text);
-    await _flutterTts.awaitSpeakCompletion(true);
-  }
+  // Add a new task
+  Future<void> _addTask(String title) async {
+    if (title.isEmpty) return;
 
-  // Checkbox was tapped
-  void checkboxChanged(bool? value, int index) {
     setState(() {
-      db.todoList[index][1] = !db.todoList[index][1];
+      _isLoading = true;
     });
-    db.updateDatabase();
+
+    try {
+      var formData = {
+        'task_title': title,
+      };
+
+      final response = await http.post(
+        Uri.parse('http://192.168.0.103:8000/api/tasks/add'),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: formData,
+      );
+
+      if (response.statusCode == 200) {
+        await _fetchTasks(); // Refresh the task list
+      } else {
+        print('Failed to add task: ${response.body}');
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to add task')),
+        );
+      }
+    } catch (e) {
+      print('Error adding task: $e');
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error adding task: $e')),
+      );
+    }
   }
 
-  // Save new task
-  void saveNewTask() {
+  // Delete a task
+  Future<void> _deleteTask(int taskId) async {
     setState(() {
-      db.todoList.add([_controller.text, false]);
-      _controller.clear();
+      _isLoading = true;
     });
-    Navigator.of(context).pop();
-    db.updateDatabase();
+
+    try {
+      final response = await http.delete(
+        Uri.parse('http://192.168.0.103:8000/api/tasks/$taskId'),
+      );
+
+      if (response.statusCode == 200) {
+        await _fetchTasks(); // Refresh the task list
+      } else {
+        print('Failed to delete task: ${response.body}');
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete task')),
+        );
+      }
+    } catch (e) {
+      print('Error deleting task: $e');
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting task: $e')),
+      );
+    }
   }
 
-  // Create a new task
-  void createNewTask() {
+  // Delete all tasks
+  Future<void> _deleteAllTasks() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await http.delete(
+        Uri.parse('http://192.168.0.103:8000/api/tasks'),
+      );
+
+      if (response.statusCode == 200) {
+        await _fetchTasks(); // Refresh the task list
+      } else {
+        print('Failed to delete all tasks: ${response.body}');
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete all tasks')),
+        );
+      }
+    } catch (e) {
+      print('Error deleting all tasks: $e');
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting all tasks: $e')),
+      );
+    }
+  }
+
+  // Create a new task dialog
+  void _showAddTaskDialog() {
     showDialog(
       context: context,
       builder: (context) {
-        return DialogBox(
-          controller: _controller,
-          onSave: saveNewTask,
-          onCancel: () => Navigator.of(context).pop(),
+        return AlertDialog(
+          title: Text('Add New Task'),
+          content: TextField(
+            controller: _controller,
+            decoration: InputDecoration(
+              hintText: 'Enter task...',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (_controller.text.isNotEmpty) {
+                  _addTask(_controller.text);
+                  _controller.clear();
+                  Navigator.of(context).pop();
+                }
+              },
+              child: Text('Add'),
+            ),
+          ],
         );
       },
     );
   }
 
-  // Delete task
-  void deleteTask(BuildContext context, int index) {
-    setState(() {
-      db.todoList.removeAt(index);
-    });
-    db.updateDatabase();
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 249, 238, 255),
       appBar: AppBar(
-        title: Text(
-          'Task Management',
-          style: TextStyle(
-            color: Color.fromARGB(255, 248, 237, 253),
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
+        title: Text('Task Management'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: _fetchTasks,
           ),
-        ),
-        elevation: 0,
-        backgroundColor: const Color(0xFF610A8A),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: createNewTask,
-        child: Icon(Icons.add),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: db.todoList.length,
-              itemBuilder: (context, index) {
-                return TaskMtile(
-                  taskName: db.todoList[index][0],
-                  taskCompleted: db.todoList[index][1],
-                  onChanged: (value) => checkboxChanged(value, index),
-                  deleteFunction: (context) => deleteTask(context, index),
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton(
-              onPressed: _startListening,
-              child: Text(isListening ? "Listening..." : "Start Voice Command"),
-            ),
+          IconButton(
+            icon: Icon(Icons.delete_sweep),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text('Delete All Tasks'),
+                  content: Text('Are you sure you want to delete all tasks?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        _deleteAllTasks();
+                        Navigator.of(context).pop();
+                      },
+                      child: Text('Delete All'),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddTaskDialog,
+        child: Icon(Icons.add),
+      ),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : _tasks.isEmpty
+              ? Center(child: Text('No tasks yet. Add some!'))
+              : ListView.builder(
+                  itemCount: _tasks.length,
+                  itemBuilder: (context, index) {
+                    final task = _tasks[index];
+                    return ListTile(
+                      title: Text(task['title']),
+                      trailing: IconButton(
+                        icon: Icon(Icons.delete),
+                        onPressed: () => _deleteTask(task['id']),
+                      ),
+                    );
+                  },
+                ),
     );
   }
 }

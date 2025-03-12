@@ -233,6 +233,7 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('userId', userId);
           print('User ID saved to SharedPreferences.');
+          await _loginUserToBackend(userId);
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => SecondPage()),
@@ -259,6 +260,33 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
     } finally {
       setState(() => _isLoading = false);
       print('Image processing completed.');
+    }
+  }
+
+  Future<void> _loginUserToBackend(String userId) async {
+    try {
+      print('Sending user ID to backend: $userId');
+
+      // Create form data for the request
+      var formData = {
+        'user_id': userId,
+      };
+
+      // Send the request
+      var response = await http.post(
+        Uri.parse('http://192.168.0.103:8000/api/login'),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: formData,
+      );
+
+      if (response.statusCode == 200) {
+        print('User logged in successfully on backend');
+      } else {
+        print('Error logging in to backend: ${response.body}');
+      }
+    } catch (e) {
+      print('Error sending user ID to backend: $e');
+      // Continue with the app flow even if this fails
     }
   }
 
