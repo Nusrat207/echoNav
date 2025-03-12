@@ -516,19 +516,50 @@ class _TaskManagementState extends State<TaskManagementScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Add New Task'),
+          title: Text(
+            'Add New Task',
+            style: TextStyle(
+              color: Colors.indigo.shade800,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           content: TextField(
             controller: _controller,
             decoration: InputDecoration(
               hintText: 'Enter task...',
+              filled: true,
+              fillColor: Colors.grey.shade50,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.indigo, width: 2),
+              ),
             ),
+            autofocus: true,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.grey.shade700),
+              ),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.indigo,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
               onPressed: () {
                 if (_controller.text.isNotEmpty) {
                   _addTask(_controller.text);
@@ -536,7 +567,7 @@ class _TaskManagementState extends State<TaskManagementScreen> {
                   Navigator.of(context).pop();
                 }
               },
-              child: Text('Add'),
+              child: Text('Add Task'),
             ),
           ],
         );
@@ -548,11 +579,18 @@ class _TaskManagementState extends State<TaskManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Task Management'),
+        title: Text(
+          'Task Management',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.indigo,
+        foregroundColor: Colors.white,
+        elevation: 2,
         actions: [
           IconButton(
             icon: Icon(Icons.refresh),
             onPressed: _fetchTasks,
+            tooltip: 'Refresh Tasks',
           ),
           IconButton(
             icon: Icon(Icons.delete_sweep),
@@ -568,6 +606,10 @@ class _TaskManagementState extends State<TaskManagementScreen> {
                       child: Text('Cancel'),
                     ),
                     TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.red,
+                      ),
                       onPressed: () {
                         _deleteAllTasks();
                         Navigator.of(context).pop();
@@ -578,6 +620,7 @@ class _TaskManagementState extends State<TaskManagementScreen> {
                 ),
               );
             },
+            tooltip: 'Delete All Tasks',
           ),
           IconButton(
             icon: Icon(
@@ -585,42 +628,71 @@ class _TaskManagementState extends State<TaskManagementScreen> {
                   ? Icons.mic
                   : (_isSpeaking ? Icons.volume_up : Icons.mic_none),
             ),
-            onPressed: _startListening,
+            onPressed: _restartListening,
             color: _isListening
                 ? Colors.red
-                : (_isSpeaking ? Colors.orange : Colors.blue),
+                : (_isSpeaking ? Colors.orange : Colors.white),
+            tooltip: _isListening ? 'Listening...' : 'Speak a command',
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddTaskDialog,
         child: Icon(Icons.add),
+        backgroundColor: Colors.indigo,
+        tooltip: 'Add Task',
       ),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              // TRANSCRIPTION CARD - Very visible at the top
-              Container(
-                width: double.infinity,
-                margin: EdgeInsets.all(16),
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 5,
-                      offset: Offset(0, 2),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.indigo.shade50, Colors.white],
+          ),
+        ),
+        child: Column(
+          children: [
+            // TRANSCRIPTION CARD - Enhanced design
+            Container(
+              width: double.infinity,
+              margin: EdgeInsets.fromLTRB(16, 16, 16, 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Voice status header
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: _isListening
+                          ? Colors.red.shade50
+                          : (_isSpeaking
+                              ? Colors.orange.shade50
+                              : Colors.indigo.shade50),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16),
+                      ),
+                      border: Border.all(
+                        color: _isListening
+                            ? Colors.red.shade200
+                            : (_isSpeaking
+                                ? Colors.orange.shade200
+                                : Colors.indigo.shade200),
+                        width: 1,
+                      ),
                     ),
-                  ],
-                  border: Border.all(color: Colors.blue.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                    child: Row(
                       children: [
                         Icon(
                           _isListening
@@ -630,16 +702,24 @@ class _TaskManagementState extends State<TaskManagementScreen> {
                                   : Icons.mic_none),
                           color: _isListening
                               ? Colors.red
-                              : (_isSpeaking ? Colors.orange : Colors.blue),
+                              : (_isSpeaking ? Colors.orange : Colors.indigo),
+                          size: 24,
                         ),
-                        SizedBox(width: 8),
+                        SizedBox(width: 12),
                         Text(
                           _isListening
                               ? 'Listening...'
-                              : (_isSpeaking ? 'Speaking...' : 'Voice Input:'),
+                              : (_isSpeaking
+                                  ? 'Speaking...'
+                                  : 'Voice Assistant'),
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
+                            color: _isListening
+                                ? Colors.red.shade700
+                                : (_isSpeaking
+                                    ? Colors.orange.shade700
+                                    : Colors.indigo.shade700),
                           ),
                         ),
                         if (_currentCommand.isNotEmpty)
@@ -652,6 +732,7 @@ class _TaskManagementState extends State<TaskManagementScreen> {
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
+                                    fontSize: 12,
                                   ),
                                 ),
                                 backgroundColor: _currentCommand == 'add'
@@ -659,61 +740,177 @@ class _TaskManagementState extends State<TaskManagementScreen> {
                                     : _currentCommand == 'delete'
                                         ? Colors.red
                                         : Colors.blue,
+                                padding: EdgeInsets.symmetric(horizontal: 8),
                               ),
                             ),
                           ),
                       ],
                     ),
-                    SizedBox(height: 8),
-                    Container(
-                      padding: EdgeInsets.all(12),
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Text(
-                        _transcription.isEmpty
-                            ? (_isSpeaking
-                                ? 'Speaking...'
-                                : 'Tap the microphone to speak')
-                            : _transcription,
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: _transcription.isEmpty
-                              ? Colors.grey
-                              : Colors.black87,
-                        ),
+                  ),
+
+                  // Transcription content
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(16),
+                        bottomRight: Radius.circular(16),
                       ),
                     ),
-                  ],
-                ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Transcription:',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Container(
+                          padding: EdgeInsets.all(12),
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Text(
+                            _transcription.isEmpty
+                                ? (_isSpeaking
+                                    ? 'Speaking...'
+                                    : 'Tap the microphone to speak')
+                                : _transcription,
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: _transcription.isEmpty
+                                  ? Colors.grey.shade400
+                                  : Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
+            ),
 
-              // Task list - now in an Expanded widget to take remaining space
-              Expanded(
-                child: _isLoading
-                    ? Center(child: CircularProgressIndicator())
-                    : _tasks.isEmpty
-                        ? Center(child: Text('No tasks yet. Add some!'))
-                        : ListView.builder(
-                            itemCount: _tasks.length,
-                            itemBuilder: (context, index) {
-                              final task = _tasks[index];
-                              return ListTile(
-                                title: Text(task['title']),
+            // Task list header
+            Padding(
+              padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Your Tasks',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.indigo.shade800,
+                    ),
+                  ),
+                  Text(
+                    '${_tasks.length} ${_tasks.length == 1 ? 'task' : 'tasks'}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Task list with improved styling
+            Expanded(
+              child: _isLoading
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: Colors.indigo,
+                      ),
+                    )
+                  : _tasks.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.task_alt,
+                                size: 64,
+                                color: Colors.grey.shade300,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'No tasks yet',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.grey.shade600,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Add a task to get started',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          itemCount: _tasks.length,
+                          itemBuilder: (context, index) {
+                            final task = _tasks[index];
+                            return Card(
+                              elevation: 1,
+                              margin: EdgeInsets.only(bottom: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: ListTile(
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                leading: CircleAvatar(
+                                  backgroundColor: Colors.indigo.shade100,
+                                  child: Text(
+                                    '${index + 1}',
+                                    style: TextStyle(
+                                      color: Colors.indigo.shade800,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                title: Text(
+                                  task['title'],
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                                 trailing: IconButton(
-                                  icon: Icon(Icons.delete),
+                                  icon: Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.red.shade400,
+                                  ),
                                   onPressed: () => _deleteTask(task['id']),
                                 ),
-                              );
-                            },
-                          ),
-              ),
-            ],
-          ),
-        ],
+                              ),
+                            );
+                          },
+                        ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -723,5 +920,40 @@ class _TaskManagementState extends State<TaskManagementScreen> {
     _controller.dispose();
     _flutterTts.stop();
     super.dispose();
+  }
+
+  // New method to restart listening regardless of current state
+  void _restartListening() async {
+    // If speaking, stop it
+    if (_isSpeaking) {
+      print('Stopping current speech to restart listening');
+      await _flutterTts.stop();
+
+      // Wait a moment for TTS to fully stop
+      await Future.delayed(Duration(milliseconds: 200));
+    }
+
+    // If already listening, stop it first
+    if (_isListening) {
+      print('Stopping current listening to restart');
+      _speech.stop();
+      setState(() => _isListening = false);
+
+      // Wait a moment for STT to fully stop
+      await Future.delayed(Duration(milliseconds: 200));
+    }
+
+    // Reset current command if any
+    if (_currentCommand.isNotEmpty) {
+      print('Resetting current command: $_currentCommand');
+      setState(() => _currentCommand = '');
+    }
+
+    // Clear transcription
+    setState(() => _transcription = '');
+
+    // Start fresh listening
+    print('Starting fresh listening session');
+    _activateListening();
   }
 }
