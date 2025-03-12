@@ -1,7 +1,7 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'face_recognition.dart';
-import 'package:first_pro/screens/second_page.dart';
+import 'package:echoNav/screens/second_page.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -51,44 +51,44 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
- Future<void> _startFaceDetection() async {
-  while (!_isFaceDetected) {
-    if (!_isCameraInitialized) {
-      await Future.delayed(Duration(milliseconds: 500));
-      continue;
-    }
-
-    try {
-      // Capture a frame from the camera
-      final image = await _cameraController.takePicture();
-
-      // Detect faces in the captured image
-      final faces = await _faceRecognition.detectFace(image.path);
-
-      if (faces.isNotEmpty) {
-        // Face detected
-        setState(() {
-          _isFaceDetected = true;
-        });
-
-        // Close the camera and navigate back with the image path
-        Navigator.pop(context, image.path);
-
-        // Navigate directly to SecondPage
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => SecondPage()),
-        );
-        break;
+  Future<void> _startFaceDetection() async {
+    while (!_isFaceDetected) {
+      if (!_isCameraInitialized) {
+        await Future.delayed(Duration(milliseconds: 500));
+        continue;
       }
-    } catch (e) {
-      print("Error detecting face: $e");
-    }
 
-    // Wait for a short duration before checking again
-    await Future.delayed(Duration(milliseconds: 500));
+      try {
+        // Capture a frame from the camera
+        final image = await _cameraController.takePicture();
+
+        // Detect faces in the captured image
+        final faces = await _faceRecognition.detectFace(image.path);
+
+        if (faces.isNotEmpty) {
+          // Face detected
+          setState(() {
+            _isFaceDetected = true;
+          });
+
+          // Close the camera and navigate back with the image path
+          Navigator.pop(context, image.path);
+
+          // Navigate directly to SecondPage
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => SecondPage()),
+          );
+          break;
+        }
+      } catch (e) {
+        print("Error detecting face: $e");
+      }
+
+      // Wait for a short duration before checking again
+      await Future.delayed(Duration(milliseconds: 500));
+    }
   }
-}
 
   @override
   void dispose() {
