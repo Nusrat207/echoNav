@@ -354,7 +354,8 @@ async def ask_question(prompt: str = Form(...)):
 
     # If a prompt is received, process the image and generate a response
     # llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash")
-    instructions = f"""Given chat history, answer the user's question at the end:
+    instructions = f"""Given chat history, answer the user's question at the end.
+    Keep the response concise and to the point.
     Chat history:  {prompt}"""
 
     print("--------------------------------")
