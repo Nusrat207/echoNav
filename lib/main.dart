@@ -46,6 +46,26 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialize the timer properly
+    _timer = Timer(const Duration(seconds: 5), () {
+      if (mounted) {
+        _navigateToNextPage();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
   // Function to check if the user is logged in
   Future<bool> _checkLoginStatus() async {
     try {
@@ -62,6 +82,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // Navigate to the next page based on login status
   void _navigateToNextPage() async {
+    // Cancel the timer to avoid duplicate navigation
+    _timer?.cancel();
+    _timer = null;
+
     bool isLoggedIn = await _checkLoginStatus();
 
     if (isLoggedIn) {
@@ -124,7 +148,11 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _navigateToNextPage,
+              onPressed: () {
+                _timer?.cancel();
+                _timer = null;
+                _navigateToNextPage();
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF610A8A),
                 padding:

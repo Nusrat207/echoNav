@@ -104,9 +104,22 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
     print("Speaking: $optionsText");
 
     try {
+      // Important: Temporarily disable the completion handler to prevent state interference
+      _flutterTts.setCompletionHandler(() {});
+
       await _flutterTts.speak(optionsText);
       await _flutterTts.awaitSpeakCompletion(true);
       print("Speaking completed successfully");
+
+      // Re-establish the completion handler
+      _flutterTts.setCompletionHandler(() {
+        print("TTS completion callback triggered");
+        if (mounted && !_hasNavigated) {
+          setState(() {
+            isTtsSpeaking = false;
+          });
+        }
+      });
     } catch (e) {
       print("Error during speech: $e");
       // Try to recover
@@ -119,14 +132,16 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
     }
 
     print("Speaking done!!!");
-    if (mounted && isTtsSpeaking) {
+    // Don't check isTtsSpeaking here, as it might have been changed by the handler
+    if (mounted) {
       print("Starting voice capture...");
       captureVoice();
     }
   }
 
   void captureVoice() async {
-    if (!isListening && isTtsSpeaking) {
+    if (!isListening) {
+      // Removed the isTtsSpeaking check here
       bool available = await _speechToText.initialize();
       if (available) {
         setState(() => isListening = true);
