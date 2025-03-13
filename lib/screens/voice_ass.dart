@@ -50,7 +50,10 @@ class _Stt extends State<Stt> {
         print('Speech recognition error: $error');
 
         await Future.delayed(Duration(seconds: 1));
-        await _startListening();
+        // Only start listening if not speaking
+        if (!isSpeaking && !isDisposed) {
+          await _startListening();
+        }
       },
     );
 
@@ -62,8 +65,13 @@ class _Stt extends State<Stt> {
         isSpeaking = false;
       });
 
-      // Start listening again after speaking is done
-      _startListening();
+      // Start listening again after speaking is done, but add a small delay
+      // to ensure TTS is fully completed
+      Future.delayed(Duration(milliseconds: 300), () {
+        if (!isDisposed && !isListening && !isSpeaking) {
+          _startListening();
+        }
+      });
     });
 
     // Initial greeting
@@ -459,6 +467,10 @@ class _Stt extends State<Stt> {
     isDisposed = true;
     _speechToText.cancel();
     _flutterTts.stop();
+
+    // Clear the completion handler to prevent it from firing after disposal
+    _flutterTts.setCompletionHandler(() {});
+
     super.dispose();
   }
 }

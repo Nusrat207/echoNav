@@ -24,6 +24,8 @@ class _VisionPageState extends State<VisionPage> {
       'can you tell me what do you see'; // To store the recognized text from speech
   String _responseText = ''; // To store the response from backend
   bool _isListening = false; // To track the listening state
+  bool _isSpeaking = false; // To track the speaking state
+  bool _isProcessing = false; // To track processing state
   late stt.SpeechToText _speechToText; // Speech-to-text instance
   late FlutterTts _flutterTts; // Text-to-speech instance
 
@@ -34,10 +36,26 @@ class _VisionPageState extends State<VisionPage> {
     _speechToText = stt.SpeechToText();
     _flutterTts = FlutterTts();
 
-    // Speak the initial greeting and start listening afterward
-    _flutterTts.speak("How May I help you today?").then((_) {
-      _startListening(); // Start listening after TTS is done
+    // Configure TTS completion handler
+    _flutterTts.setCompletionHandler(() {
+      setState(() {
+        _isSpeaking = false;
+      });
+
+      // Add a small delay before starting to listen again
+      Future.delayed(Duration(milliseconds: 300), () {
+        if (!_isListening && !_isSpeaking && !_isProcessing && mounted) {
+          _startListening();
+        }
+      });
     });
+
+    // Speak the initial greeting and start listening afterward
+    setState(() {
+      _isSpeaking = true;
+    });
+    _flutterTts.speak("How May I help you today?");
+    // Listening will start automatically after TTS completion via the completion handler
   }
 
   // Initialize the camera
@@ -54,6 +72,9 @@ class _VisionPageState extends State<VisionPage> {
 
   // Start listening for voice commands
   Future<void> _startListening() async {
+    // Don't start listening if already listening, speaking, or processing
+    if (_isListening || _isSpeaking || _isProcessing || !mounted) return;
+
     bool available = await _speechToText.initialize();
     if (available) {
       setState(() {
@@ -65,13 +86,19 @@ class _VisionPageState extends State<VisionPage> {
             _recognizedText = result.recognizedWords; // Update recognized text
           });
 
-          // If the result is final and recognized text is empty, restart listening
+          // If the result is final and recognized text is not empty, process it
           if (result.finalResult) {
-            if (_recognizedText.isEmpty) {
-              _startListening(); // Restart listening if no speech was recognized
-            } else {
-              _stopListening(); // Stop current listening
+            _stopListening(); // Stop current listening
+
+            if (_recognizedText.isNotEmpty) {
               _sendFrameToBackend(); // Send the frame to the backend
+            } else {
+              // If no speech was recognized, restart listening after a short delay
+              Future.delayed(Duration(milliseconds: 300), () {
+                if (!_isSpeaking && !_isProcessing && mounted) {
+                  _startListening();
+                }
+              });
             }
           }
         },
@@ -92,6 +119,12 @@ class _VisionPageState extends State<VisionPage> {
 
   // Send frame and voice command to the backend
   Future<void> _sendFrameToBackend() async {
+    if (_isSpeaking || _isProcessing || !mounted) return;
+
+    setState(() {
+      _isProcessing = true;
+    });
+
     try {
       if (_cameraController.value.isInitialized && _recognizedText.isNotEmpty) {
         // Capture image
@@ -132,19 +165,45 @@ class _VisionPageState extends State<VisionPage> {
 
             setState(() {
               _responseText = responseText;
+              _isProcessing = false;
+              _isSpeaking = true;
             });
 
-            _flutterTts.speak(responseText).then((_) {
-              _startListening(); // Restart listening after TTS is done
-            });
+            await _flutterTts.speak(responseText);
+            // Listening will restart via the TTS completion handler
           } else {
             print("Failed to send request: ${response.statusCode}");
             print("Response body: ${response.body}");
+
+            setState(() {
+              _isProcessing = false;
+              _isSpeaking = true;
+            });
+
+            await _flutterTts.speak("Sorry, I couldn't process your request.");
+            // Listening will restart via the TTS completion handler
           }
+        }
+      } else {
+        setState(() {
+          _isProcessing = false;
+        });
+
+        // If no text or camera not ready, restart listening
+        if (!_isSpeaking && mounted) {
+          _startListening();
         }
       }
     } catch (e) {
       print("Error: $e");
+
+      setState(() {
+        _isProcessing = false;
+        _isSpeaking = true;
+      });
+
+      await _flutterTts.speak("Sorry, an error occurred.");
+      // Listening will restart via the TTS completion handler
     }
   }
 
@@ -152,7 +211,11 @@ class _VisionPageState extends State<VisionPage> {
   void dispose() {
     _cameraController.dispose();
     _speechToText.stop();
-    _flutterTts.stop(); // Make sure to stop TTS when disposing
+    _flutterTts.stop();
+
+    // Clear the completion handler to prevent it from firing after disposal
+    _flutterTts.setCompletionHandler(() {});
+
     super.dispose();
   }
 
@@ -206,12 +269,52 @@ class _VisionPageState extends State<VisionPage> {
             ),
           ),
 
+          // Status indicators
+          if (_isProcessing)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 10),
+                  Text("Processing..."),
+                ],
+              ),
+            ),
+
+          if (_isSpeaking)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.volume_up, color: Colors.blue),
+                  SizedBox(width: 10),
+                  Text("Speaking..."),
+                  SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: () async {
+                      await _flutterTts.stop();
+                      setState(() {
+                        _isSpeaking = false;
+                      });
+                      _startListening();
+                    },
+                    child: Text("Stop"),
+                  ),
+                ],
+              ),
+            ),
+
           // Smaller buttons with icons
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               ElevatedButton(
-                onPressed: _isListening ? _stopListening : _startListening,
+                onPressed: (_isProcessing || _isSpeaking)
+                    ? null
+                    : (_isListening ? _stopListening : _startListening),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.all(8.0), // Smaller padding
                 ),
@@ -219,7 +322,12 @@ class _VisionPageState extends State<VisionPage> {
               ),
               const SizedBox(width: 20),
               ElevatedButton(
-                onPressed: _sendFrameToBackend,
+                onPressed: (_isListening ||
+                        _isSpeaking ||
+                        _isProcessing ||
+                        _recognizedText.isEmpty)
+                    ? null
+                    : _sendFrameToBackend,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.all(8.0), // Smaller padding
                 ),
@@ -227,13 +335,6 @@ class _VisionPageState extends State<VisionPage> {
               ),
             ],
           ),
-
-          // Loading indicator if listening
-          // if (_isListening)
-          //   const Padding(
-          //     padding: EdgeInsets.all(8.0),
-          //     child: CircularProgressIndicator(),
-          //   ),
         ],
       ),
     );
