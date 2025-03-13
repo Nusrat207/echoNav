@@ -94,21 +94,30 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
         setState(() => isListening = true);
         _speechToText.listen(
           onResult: (result) {
-            setState(() {
-              text = result.recognizedWords;
-              if (result.hasConfidenceRating && result.confidence > 0) {
-                confidence = result.confidence;
-              }
-              print('Recognized: $text');
+            if (isListening && !_hasNavigated) {
+              // Only process if not already navigated
+              setState(() {
+                text = result.recognizedWords;
+                if (result.hasConfidenceRating && result.confidence > 0) {
+                  confidence = result.confidence;
+                }
+                print('Recognized: $text');
 
-              _navigateToFeature(text.toLowerCase(), fromVoiceCommand: true);
-            });
+                if (text.isNotEmpty) {
+                  _navigateToFeature(text.toLowerCase(),
+                      fromVoiceCommand: true);
+                }
+              });
+            }
           },
         );
 
         await Future.delayed(Duration(seconds: 6));
-        _speechToText.stop();
-        setState(() => isListening = false);
+        if (isListening) {
+          // Only stop if still listening
+          _speechToText.stop();
+          setState(() => isListening = false);
+        }
       } else {
         print("Speech recognition not available");
       }
@@ -142,9 +151,19 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
 
   void _navigateToFeature(String command, {required bool fromVoiceCommand}) {
     if (fromVoiceCommand && _hasNavigated) return;
-    _hasNavigated = fromVoiceCommand;
 
-    _speechToText.stop();
+    // Set flag immediately to prevent multiple navigations
+    if (fromVoiceCommand) {
+      _hasNavigated = true;
+      // Stop listening immediately when navigating
+      if (isListening) {
+        _speechToText.stop();
+        setState(() => isListening = false);
+      }
+    }
+
+    // Stop any ongoing TTS to prevent conflicts
+    _flutterTts.stop();
 
     if (command.contains('voice assistant') ||
         command.contains('voice') ||
@@ -156,6 +175,7 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
         _hasNavigated = false;
         _speakOptions();
       });
+      return;
     } else if (command.contains('navigation')) {
       Navigator.push(
         context,
@@ -164,6 +184,7 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
         _hasNavigated = false;
         _speakOptions();
       });
+      return;
     } else if (command.contains('object recognition') ||
         command.contains('object') ||
         command.contains('recognition')) {
@@ -174,8 +195,12 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
         _hasNavigated = false;
         _speakOptions();
       });
-    } else if (command.contains('task management') ||
-        command.contains('reminder')) {
+      return;
+    } else if (command.contains('task') ||
+        command.contains('reminder') ||
+        command.contains('manager') ||
+        command.contains('management') ||
+        command.contains('ask')) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => TaskManagementScreen()),
@@ -183,6 +208,7 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
         _hasNavigated = false;
         _speakOptions();
       });
+      return;
     } else if (command.contains('freemium') ||
         command.contains('model') ||
         command.contains('premium')) {
@@ -193,6 +219,7 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
         _hasNavigated = false;
         _speakOptions();
       });
+      return;
     } else if (command.contains('vision')) {
       Navigator.push(
         context,
@@ -201,12 +228,32 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
         _hasNavigated = false;
         _speakOptions();
       });
+      return;
     } else {
-      String x = "I didn't understand";
-      _flutterTts.speak(x);
-      text = "";
-      _hasNavigated = false;
+      // If speech wasn't recognized properly or didn't match any feature
+      _askAgain();
     }
+  }
+
+  // New method to handle asking the user again
+  Future<void> _askAgain() async {
+    String message = "I didn't understand. Please try again.";
+    print(message);
+
+    // Reset navigation flag since we're not actually navigating
+    _hasNavigated = false;
+
+    // Speak the prompt
+    await _flutterTts.speak(message);
+    await _flutterTts.awaitSpeakCompletion(true);
+
+    // Clear the previous text
+    setState(() {
+      text = "";
+    });
+
+    // Start listening again
+    captureVoice();
   }
 
   Widget _buildFeatureTile(
@@ -280,11 +327,8 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
                         "navigation"),
                     _buildFeatureTile(Icons.computer, "Vision",
                         "See your surroundings using AI.", "vision"),
-                    _buildFeatureTile(
-                        Icons.task,
-                        "Reminders and Task Management",
-                        "Organize tasks and set reminders",
-                        "task management"),
+                    _buildFeatureTile(Icons.task, "Task Management",
+                        "Organize tasks in one place", "task management"),
                     _buildFeatureTile(Icons.monetization_on, "Freemium Model",
                         "Enjoy free features or upgrade", "freemium model"),
                   ],
