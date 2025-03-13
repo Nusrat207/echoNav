@@ -36,26 +36,41 @@ class _VisionPageState extends State<VisionPage> {
     _speechToText = stt.SpeechToText();
     _flutterTts = FlutterTts();
 
-    // Configure TTS completion handler
+    // Configure TTS settings
     _flutterTts.setCompletionHandler(() {
+      if (!mounted) return;
+
       setState(() {
         _isSpeaking = false;
       });
 
-      // Add a small delay before starting to listen again
-      Future.delayed(Duration(milliseconds: 500), () {
+      // Add a longer delay before starting to listen after speaking
+      Future.delayed(Duration(milliseconds: 1500), () {
         if (!_isListening && !_isSpeaking && !_isProcessing && mounted) {
           _startListening();
         }
       });
     });
 
-    // Speak the initial greeting and start listening afterward
+    // Initialize TTS settings
+    _initTts();
+
+    // Make absolutely sure we're not listening
+    _stopListening();
+
+    // Speak greeting - listening will start via completion handler only
     setState(() {
       _isSpeaking = true;
     });
     _flutterTts.speak("How May I help you today?");
-    // Listening will start automatically after TTS completion via the completion handler
+  }
+
+  // Initialize TTS with settings to avoid overlap issues
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setSpeechRate(0.5); // Slightly slower rate
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
   }
 
   // Initialize the camera
@@ -72,51 +87,65 @@ class _VisionPageState extends State<VisionPage> {
 
   // Start listening for voice commands
   Future<void> _startListening() async {
-    // Don't start listening if already listening, speaking, or processing
-    if (_isListening || _isSpeaking || _isProcessing || !mounted) return;
+    // Extra safety check - never listen while speaking
+    if (_isListening || _isSpeaking || _isProcessing || !mounted) {
+      print("Not starting listening - conditions not met");
+      return;
+    }
 
-    bool available = await _speechToText.initialize();
+    print("Starting speech recognition");
+    bool available = await _speechToText.initialize(
+      onError: (error) => print("Speech recognition error: $error"),
+      onStatus: (status) => print("Speech recognition status: $status"),
+    );
+
     if (available) {
       setState(() {
-        _isListening = true; // Set to true when listening starts
+        _isListening = true;
       });
-      _speechToText.listen(
+
+      await _speechToText.listen(
         onResult: (result) {
-          // Only update text if we're still listening (not speaking)
-          if (_isListening && !_isSpeaking) {
+          // Only process results if we're still in listening mode and not speaking
+          if (_isListening && !_isSpeaking && !_isProcessing && mounted) {
             setState(() {
-              _recognizedText =
-                  result.recognizedWords; // Update recognized text
+              _recognizedText = result.recognizedWords;
             });
-          }
 
-          // If the result is final and recognized text is not empty, process it
-          if (result.finalResult && !_isSpeaking) {
-            _stopListening(); // Stop current listening
+            // If the result is final and recognized text is not empty, process it
+            if (result.finalResult) {
+              _stopListening();
 
-            if (_recognizedText.isNotEmpty) {
-              _sendFrameToBackend(); // Send the frame to the backend
-            } else {
-              // If no speech was recognized, restart listening after a short delay
-              Future.delayed(Duration(milliseconds: 500), () {
-                if (!_isSpeaking && !_isProcessing && mounted) {
-                  _startListening();
-                }
-              });
+              if (_recognizedText.isNotEmpty) {
+                _sendFrameToBackend();
+              } else {
+                // If no speech was recognized, restart listening after a delay
+                Future.delayed(Duration(milliseconds: 800), () {
+                  if (!_isSpeaking && !_isProcessing && mounted) {
+                    _startListening();
+                  }
+                });
+              }
             }
           }
         },
         listenOptions: stt.SpeechListenOptions(
-          cancelOnError: true, // Automatically stop on error
+          cancelOnError: true,
         ),
       );
+    } else {
+      print("Speech recognition not available");
     }
   }
 
-  // Stop listening
+  // Stop listening - with additional safety
   void _stopListening() {
-    if (_isListening) {
+    if (_speechToText.isListening) {
+      print("Stopping speech recognition");
       _speechToText.stop();
+    }
+
+    if (_isListening) {
       setState(() {
         _isListening = false;
       });
@@ -127,7 +156,7 @@ class _VisionPageState extends State<VisionPage> {
   Future<void> _sendFrameToBackend() async {
     if (_isSpeaking || _isProcessing || !mounted) return;
 
-    // Make sure we're not listening while processing
+    // Make absolutely sure we're not listening while processing
     _stopListening();
 
     setState(() {
@@ -158,7 +187,7 @@ class _VisionPageState extends State<VisionPage> {
           String base64Image = base64Encode(compressedBytes);
 
           // Prepare API request
-          var url = Uri.parse("http://192.168.0.103:8000/api/ask");
+          var url = Uri.parse("http://192.168.238.54:8000/api/ask");
           var response = await http.post(
             url,
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},

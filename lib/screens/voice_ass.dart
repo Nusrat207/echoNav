@@ -67,8 +67,8 @@ class _Stt extends State<Stt> {
 
       // Start listening again after speaking is done, but add a small delay
       // to ensure TTS is fully completed
-      Future.delayed(Duration(milliseconds: 300), () {
-        if (!isDisposed && !isListening && !isSpeaking) {
+      Future.delayed(Duration(milliseconds: 500), () {
+        if (!isDisposed && !isListening && !isSpeaking && !isProcessing) {
           _startListening();
         }
       });
@@ -82,11 +82,14 @@ class _Stt extends State<Stt> {
           .add({'type': 'assistant', 'message': 'How may I help you today?'});
     });
 
+    // Make sure we're not listening while speaking the initial greeting
+    _stopListening();
     await _flutterTts.speak("How may I help you today?");
     // Listening will start automatically after TTS completion via the completion handler
   }
 
   Future<void> _startListening() async {
+    // Don't start listening if already listening, speaking, processing, or disposed
     if (isDisposed || isListening || isSpeaking || isProcessing) return;
 
     try {
@@ -96,14 +99,17 @@ class _Stt extends State<Stt> {
 
         await _speechToText.listen(
           onResult: (result) {
-            setState(() {
-              recognizedText = result.recognizedWords;
-            });
+            // Only update text if we're still listening and not speaking
+            if (isListening && !isSpeaking && !isProcessing) {
+              setState(() {
+                recognizedText = result.recognizedWords;
+              });
 
-            // Process final result automatically
-            if (result.finalResult && recognizedText.isNotEmpty) {
-              _stopListening();
-              _processVoiceInput(recognizedText);
+              // Process final result automatically
+              if (result.finalResult && recognizedText.isNotEmpty) {
+                _stopListening();
+                _processVoiceInput(recognizedText);
+              }
             }
           },
           listenMode: stt.ListenMode.confirmation,
@@ -117,7 +123,9 @@ class _Stt extends State<Stt> {
       // Try again after a delay
       if (!isDisposed) {
         await Future.delayed(Duration(seconds: 1));
-        await _startListening();
+        if (!isSpeaking && !isProcessing) {
+          await _startListening();
+        }
       }
     }
   }
@@ -158,6 +166,9 @@ class _Stt extends State<Stt> {
   Future<void> _processVoiceInput(String text) async {
     if (text.isEmpty || isProcessing) return;
 
+    // Make sure we're not listening while processing
+    _stopListening();
+
     // Add user message to chat history
     setState(() {
       chatHistory.add({'type': 'user', 'message': text});
@@ -172,7 +183,7 @@ class _Stt extends State<Stt> {
       String fullPrompt = chatHistoryContext + "\nUser: " + text;
 
       // Send the voice input to the backend
-      var url = Uri.parse("http://192.168.0.103:8000/api/ask/voice");
+      var url = Uri.parse("http://192.168.238.54:8000/api/ask/voice");
       var response = await http.post(
         url,
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -199,6 +210,8 @@ class _Stt extends State<Stt> {
           isSpeaking = true;
         });
 
+        // Make sure we're not listening while speaking
+        _stopListening();
         await _flutterTts.speak(aiResponse);
         // Listening will restart via the TTS completion handler
       } else {
@@ -218,6 +231,8 @@ class _Stt extends State<Stt> {
           isSpeaking = true;
         });
 
+        // Make sure we're not listening while speaking
+        _stopListening();
         await _flutterTts.speak(errorMsg);
         // Listening will restart via the TTS completion handler
       }
@@ -237,6 +252,8 @@ class _Stt extends State<Stt> {
         isSpeaking = true;
       });
 
+      // Make sure we're not listening while speaking
+      _stopListening();
       await _flutterTts.speak(errorMsg);
       // Listening will restart via the TTS completion handler
     }

@@ -404,7 +404,7 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
               " Otherwise, If you can determine that user has completed the current instruction and is NOT indoors, end your statement by saying 'current instruction completed'.";
 
       final response = await http.post(
-        Uri.parse('http://192.168.0.103:8000/api/ask'),
+        Uri.parse('http://192.168.238.54:8000/api/ask'),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {
           'image': base64Image,
