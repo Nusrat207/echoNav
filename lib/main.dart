@@ -12,10 +12,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 void main() async {
   WidgetsFlutterBinding
       .ensureInitialized(); // Ensure Flutter binding is initialized
-  //init the hive
-  await Hive.initFlutter();
-// open a box
-  var box = await Hive.openBox('Mybox');
   runApp(const MyApp());
 }
 
@@ -54,7 +50,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<bool> _checkLoginStatus() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('userId');
+      //await prefs.remove('userId');
       //await prefs.setString('userId', "abc");
       final userId = prefs.getString('userId');
       return userId != null;
@@ -88,15 +84,17 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 210.0,
-        title: SizedBox(
-          height: 210.0,
+        title: Center(
+          // Center the content inside the AppBar
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment
+                .center, // Ensure horizontal centering as well
             children: [
               const Text(
                 'Welcome to EchoNav',
                 style: TextStyle(
-                  fontSize: 40,
+                  fontSize: 30,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF610A8A),
                 ),
@@ -105,7 +103,7 @@ class _MyHomePageState extends State<MyHomePage> {
               Text(
                 'Navigate, Detect, and Connect with ease',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 15,
                   color: Colors.purple[200],
                   fontStyle: FontStyle.italic,
                 ),
@@ -191,7 +189,7 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
       _cameraController =
           CameraController(frontCamera, ResolutionPreset.medium);
       _initializeControllerFuture = _cameraController.initialize();
-      setState(() {});
+      setState(() {}); // Update UI once camera is initialized
       print('Camera initialized successfully.');
     } catch (e) {
       print('Error initializing camera: $e');
@@ -233,7 +231,6 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('userId', userId);
           print('User ID saved to SharedPreferences.');
-          await _loginUserToBackend(userId);
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => SecondPage()),
@@ -263,33 +260,6 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
     }
   }
 
-  Future<void> _loginUserToBackend(String userId) async {
-    try {
-      print('Sending user ID to backend: $userId');
-
-      // Create form data for the request
-      var formData = {
-        'user_id': userId,
-      };
-
-      // Send the request
-      var response = await http.post(
-        Uri.parse('http://192.168.0.103:8000/api/login'),
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: formData,
-      );
-
-      if (response.statusCode == 200) {
-        print('User logged in successfully on backend');
-      } else {
-        print('Error logging in to backend: ${response.body}');
-      }
-    } catch (e) {
-      print('Error sending user ID to backend: $e');
-      // Continue with the app flow even if this fails
-    }
-  }
-
   void _startCaptureTimer() {
     print('Starting 7-second capture timer...');
     _captureTimer = Timer(Duration(seconds: 8), () {
@@ -314,7 +284,9 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Face Authentication')),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child:
+                  CircularProgressIndicator()) // Show loading indicator when image is being processed
           : FutureBuilder<void>(
               future: _initializeControllerFuture,
               builder: (context, snapshot) {
@@ -324,8 +296,15 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
                       "Stay still for 5 seconds while your face is being captured.");
                   _startCaptureTimer();
                   return CameraPreview(_cameraController);
+                } else if (snapshot.connectionState ==
+                    ConnectionState.waiting) {
+                  // Show a loading spinner while waiting for camera initialization
+                  return const Center(child: CircularProgressIndicator());
+                } else {
+                  // Handle other states (like errors)
+                  return const Center(
+                      child: Text('Failed to initialize camera.'));
                 }
-                return const Center(child: CircularProgressIndicator());
               },
             ),
       floatingActionButton: FloatingActionButton(
@@ -336,6 +315,7 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
     );
   }
 }
+
 
 
 
