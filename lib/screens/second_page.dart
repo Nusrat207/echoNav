@@ -7,7 +7,8 @@ import 'task_management_screen.dart';
 import 'freemium_model_screen.dart';
 import 'google_maps_screen.dart';
 import 'vision_page.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:first_pro/main.dart';
 
 class SecondPage extends StatefulWidget {
   const SecondPage({super.key});
@@ -16,7 +17,7 @@ class SecondPage extends StatefulWidget {
   State<SecondPage> createState() => _SecondPageState();
 }
 
-class _SecondPageState extends State<SecondPage> {
+class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
   bool isListening = false;
   bool isTtsSpeaking = false;
   bool _hasNavigated = false;
@@ -24,67 +25,66 @@ class _SecondPageState extends State<SecondPage> {
   late FlutterTts _flutterTts;
   String text = "Press the button & speak";
   double confidence = 1.0;
-  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this); // Add lifecycle observer
     _speechToText = stt.SpeechToText();
     _flutterTts = FlutterTts();
-
-    // Restart or reinitialize TTS and STT
-    _flutterTts.stop(); // Ensure TTS is stopped before reinitializing
-    _speechToText.stop(); // Ensure STT is stopped before reinitializing
-
-    // Reinitialize TTS and STT
-    _flutterTts = FlutterTts();
-    _speechToText = stt.SpeechToText();
-
-    // Ensure TTS and STT are initialized before starting
-    _flutterTts.setCompletionHandler(() async {
-      await _playBeepSound(); // Play beep sound after TTS is done
-      captureVoice(); // Start capturing voice after beep
-    });
-
-    _speakOptions(); // Directly call to speak options
+    _initializeTts();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // Remove lifecycle observer
     _flutterTts.stop();
     _speechToText.stop();
     super.dispose();
   }
 
-  Future<void> _speakOptions() async {
-    print("reached speak options");
-    isTtsSpeaking = true;
-    _hasNavigated = false;
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Handle app lifecycle changes
+    if (state == AppLifecycleState.paused) {
+      _flutterTts.stop(); // Stop TTS when app goes to the background
+    } else if (state == AppLifecycleState.resumed) {
+      _speakOptions(); // Restart TTS when app comes back to the foreground
+    }
+  }
 
-    //ensure google tts is installed in your phone
-
-    print("Initializing FlutterTts...");
+  Future<void> _initializeTts() async {
+    print("Initializing TTS...");
     await _flutterTts.setLanguage("en-US");
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
+    print("TTS initialized successfully.");
+
+    // Add a small delay before speaking to ensure TTS is ready
+    await Future.delayed(Duration(milliseconds: 500));
+    _speakOptions();
+  }
+
+  Future<void> _speakOptions() async {
+    print("Reached speak options");
+    if (isTtsSpeaking) return; // Prevent multiple calls
+
+    isTtsSpeaking = true;
+    _hasNavigated = false;
 
     String optionsText =
         "The features are Voice Assistant, Navigation, Object Recognition, Vision, Task Management, and Freemium Model. Which one would you like to use?";
-    print(isTtsSpeaking);
+    print("Speaking: $optionsText");
 
     await _flutterTts.speak(optionsText);
     await _flutterTts.awaitSpeakCompletion(true);
 
-    print("speaking done!!!");
+    print("Speaking done!!!");
     if (isTtsSpeaking) {
-      print("VOICE SHOULD BE OUTPUTTING");
+      print("Starting voice capture...");
       captureVoice();
     }
-  }
-
-  Future<void> _playBeepSound() async {
-    await _audioPlayer.play(AssetSource('assets/sounds/beep.mp3'));
   }
 
   void captureVoice() async {
@@ -111,6 +111,31 @@ class _SecondPageState extends State<SecondPage> {
         setState(() => isListening = false);
       } else {
         print("Speech recognition not available");
+      }
+    }
+  }
+
+  Future<void> _logout() async {
+    try {
+      _flutterTts.stop();
+      _speechToText.stop();
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('userId');
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (context) => MyHomePage(title: 'Welcome to EchoNav')),
+        );
+      }
+    } catch (e) {
+      print('Error during logout: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error during logout')),
+        );
       }
     }
   }
@@ -158,7 +183,9 @@ class _SecondPageState extends State<SecondPage> {
         _hasNavigated = false;
         _speakOptions();
       });
-    } else if (command.contains('freemium') || command.contains('model')) {
+    } else if (command.contains('freemium') ||
+        command.contains('model') ||
+        command.contains('premium')) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => FreemiumModelScreen()),
@@ -176,13 +203,9 @@ class _SecondPageState extends State<SecondPage> {
       });
     } else {
       String x = "I didn't understand";
-      //_flutterTts.speak(x);
+      _flutterTts.speak(x);
       text = "";
       _hasNavigated = false;
-
-      // int speechDuration = (x.length * 83);
-      // Future.delayed(Duration(milliseconds: speechDuration));
-      // captureVoice();
     }
   }
 
@@ -198,11 +221,11 @@ class _SecondPageState extends State<SecondPage> {
         ),
         title: Text(
           title,
-          style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
           subtitle,
-          style: TextStyle(fontSize: 18),
+          style: TextStyle(fontSize: 17),
         ),
         onTap: () {
           _flutterTts.stop();
@@ -220,12 +243,18 @@ class _SecondPageState extends State<SecondPage> {
         title: const Text(
           "Explore EchoNav's Tools",
           style: TextStyle(
-            fontSize: 26,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
             color: Color.fromARGB(255, 248, 237, 253),
           ),
         ),
         backgroundColor: const Color(0xFF610A8A),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: _logout,
+          ),
+        ],
       ),
       body: Container(
         color: const Color.fromARGB(255, 249, 238, 255),
@@ -249,11 +278,6 @@ class _SecondPageState extends State<SecondPage> {
                         "Navigation",
                         "Seamless navigation with voice commands.",
                         "navigation"),
-                    // _buildFeatureTile(
-                    //     Icons.computer,
-                    //     "Object Recognition",
-                    //     "Detect and identify objects using AI.",
-                    //     "object recognition"),
                     _buildFeatureTile(Icons.computer, "Vision",
                         "See your surroundings using AI.", "vision"),
                     _buildFeatureTile(
