@@ -353,15 +353,26 @@ async def ask_question(prompt: str = Form(...)):
         return {"response": "No prompt received, camera feed is being ignored."}
 
     # If a prompt is received, process the image and generate a response
-    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash")
-    instructions = """You're a helpful assistant. 
-    Answer the user's question based on the context provided. 
-    Do not have any special characters like * or # in the response as it will be converted to speech.
-    If you don't know the answer, say 'I don't know'.
-    Do not mention "assistant" in the response.
-    Here is the user's speech: {prompt}"""
+    # llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash")
+    instructions = f"""Given chat history, answer the user's question at the end:
+    Chat history:  {prompt}"""
 
-    response = llm.invoke(instructions).content
+    print("--------------------------------")
+    print(f"Instructions: {instructions}")
+    print("--------------------------------")
+
+    # response = llm.invoke(instructions).content
+
+    response = genai.Client().models.generate_content(
+    model='gemini-2.0-flash',
+    contents=instructions,
+        config={
+    'temperature': 1,
+    'response_mime_type': 'text/plain'
+    },
+    )
+
+    response = response.text
 
     return {"response": response}
 
