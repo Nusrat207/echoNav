@@ -43,7 +43,7 @@ class _VisionPageState extends State<VisionPage> {
       });
 
       // Add a small delay before starting to listen again
-      Future.delayed(Duration(milliseconds: 300), () {
+      Future.delayed(Duration(milliseconds: 500), () {
         if (!_isListening && !_isSpeaking && !_isProcessing && mounted) {
           _startListening();
         }
@@ -82,19 +82,23 @@ class _VisionPageState extends State<VisionPage> {
       });
       _speechToText.listen(
         onResult: (result) {
-          setState(() {
-            _recognizedText = result.recognizedWords; // Update recognized text
-          });
+          // Only update text if we're still listening (not speaking)
+          if (_isListening && !_isSpeaking) {
+            setState(() {
+              _recognizedText =
+                  result.recognizedWords; // Update recognized text
+            });
+          }
 
           // If the result is final and recognized text is not empty, process it
-          if (result.finalResult) {
+          if (result.finalResult && !_isSpeaking) {
             _stopListening(); // Stop current listening
 
             if (_recognizedText.isNotEmpty) {
               _sendFrameToBackend(); // Send the frame to the backend
             } else {
               // If no speech was recognized, restart listening after a short delay
-              Future.delayed(Duration(milliseconds: 300), () {
+              Future.delayed(Duration(milliseconds: 500), () {
                 if (!_isSpeaking && !_isProcessing && mounted) {
                   _startListening();
                 }
@@ -111,15 +115,20 @@ class _VisionPageState extends State<VisionPage> {
 
   // Stop listening
   void _stopListening() {
-    _speechToText.stop();
-    setState(() {
-      _isListening = false;
-    });
+    if (_isListening) {
+      _speechToText.stop();
+      setState(() {
+        _isListening = false;
+      });
+    }
   }
 
   // Send frame and voice command to the backend
   Future<void> _sendFrameToBackend() async {
     if (_isSpeaking || _isProcessing || !mounted) return;
+
+    // Make sure we're not listening while processing
+    _stopListening();
 
     setState(() {
       _isProcessing = true;
@@ -169,6 +178,8 @@ class _VisionPageState extends State<VisionPage> {
               _isSpeaking = true;
             });
 
+            // Make sure we're not listening while speaking
+            _stopListening();
             await _flutterTts.speak(responseText);
             // Listening will restart via the TTS completion handler
           } else {
