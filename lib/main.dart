@@ -151,19 +151,37 @@ class FaceAuthScreen extends StatefulWidget {
   _FaceAuthScreenState createState() => _FaceAuthScreenState();
 }
 
-class _FaceAuthScreenState extends State<FaceAuthScreen> {
+class _FaceAuthScreenState extends State<FaceAuthScreen>
+    with WidgetsBindingObserver {
   late CameraController _cameraController;
   late Future<void> _initializeControllerFuture;
   bool _isLoading = false;
+  bool _isCameraInitialized = false;
   late FlutterTts _flutterTts;
   Timer? _captureTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     print('Initializing FaceAuthScreen...');
-    _initializeCamera();
     _initializeTts();
+    // Delay camera initialization slightly to avoid red screen
+    Future.delayed(Duration(milliseconds: 300), () {
+      if (mounted) {
+        _initializeCamera();
+      }
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Handle app lifecycle changes
+    if (state == AppLifecycleState.inactive) {
+      _cameraController.dispose();
+    } else if (state == AppLifecycleState.resumed) {
+      _initializeCamera();
+    }
   }
 
   Future<void> _initializeTts() async {
@@ -181,15 +199,32 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
     try {
       final cameras = await availableCameras();
       print('Available cameras: $cameras');
+
+      if (cameras.isEmpty) {
+        print('No cameras available');
+        return;
+      }
+
       final frontCamera = cameras.firstWhere(
         (camera) => camera.lensDirection == CameraLensDirection.front,
         orElse: () => cameras[0],
       );
       print('Selected camera: ${frontCamera.name}');
-      _cameraController =
-          CameraController(frontCamera, ResolutionPreset.medium);
+
+      _cameraController = CameraController(
+        frontCamera,
+        ResolutionPreset.medium,
+        enableAudio: false,
+      );
+
       _initializeControllerFuture = _cameraController.initialize();
-      setState(() {}); // Update UI once camera is initialized
+      await _initializeControllerFuture;
+
+      if (mounted) {
+        setState(() {
+          _isCameraInitialized = true;
+        });
+      }
       print('Camera initialized successfully.');
     } catch (e) {
       print('Error initializing camera: $e');
@@ -202,6 +237,14 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
   }
 
   Future<void> _processImage() async {
+    if (!_isCameraInitialized || !_cameraController.value.isInitialized) {
+      print('Camera not ready for image capture');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Camera not ready. Please wait.')),
+      );
+      return;
+    }
+
     print('Processing image...');
     setState(() => _isLoading = true);
     try {
@@ -261,6 +304,16 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
   }
 
   void _startCaptureTimer() {
+    if (!_isCameraInitialized || !_cameraController.value.isInitialized) {
+      print('Camera not initialized yet, delaying timer start');
+      Future.delayed(Duration(seconds: 1), () {
+        if (mounted) {
+          _startCaptureTimer(); // Try again
+        }
+      });
+      return;
+    }
+
     print('Starting 7-second capture timer...');
     _captureTimer = Timer(Duration(seconds: 8), () {
       if (!_isLoading) {
@@ -273,6 +326,7 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
   @override
   void dispose() {
     print('Disposing FaceAuthScreen resources...');
+    WidgetsBinding.instance.removeObserver(this);
     _cameraController.dispose();
     _flutterTts.stop();
     _captureTimer?.cancel();
@@ -283,35 +337,68 @@ class _FaceAuthScreenState extends State<FaceAuthScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Face Authentication')),
-      body: _isLoading
-          ? const Center(
-              child:
-                  CircularProgressIndicator()) // Show loading indicator when image is being processed
-          : FutureBuilder<void>(
-              future: _initializeControllerFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.done) {
-                  print('Camera preview ready.');
-                  _speak(
-                      "Stay still for 5 seconds while your face is being captured.");
-                  _startCaptureTimer();
-                  return CameraPreview(_cameraController);
-                } else if (snapshot.connectionState ==
-                    ConnectionState.waiting) {
-                  // Show a loading spinner while waiting for camera initialization
-                  return const Center(child: CircularProgressIndicator());
-                } else {
-                  // Handle other states (like errors)
-                  return const Center(
-                      child: Text('Failed to initialize camera.'));
-                }
-              },
+      body: _buildBody(),
+      floatingActionButton: _isCameraInitialized && !_isLoading
+          ? FloatingActionButton(
+              onPressed: _processImage,
+              backgroundColor: const Color(0xFF610A8A),
+              child: const Icon(Icons.camera, color: Colors.white),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (!_isCameraInitialized) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 20),
+            Text(
+              'Initializing camera...',
+              style: TextStyle(fontSize: 16),
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _isLoading ? null : _processImage,
-        backgroundColor: const Color(0xFF610A8A),
-        child: const Icon(Icons.camera, color: Colors.white),
-      ),
+          ],
+        ),
+      );
+    }
+
+    return FutureBuilder<void>(
+      future: _initializeControllerFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done &&
+            _isCameraInitialized &&
+            _cameraController.value.isInitialized) {
+          print('Camera preview ready.');
+          _speak("Stay still for 5 seconds while your face is being captured.");
+          if (_captureTimer == null) {
+            _startCaptureTimer();
+          }
+          // Preserve original camera preview without container constraints
+          return CameraPreview(_cameraController);
+        } else {
+          // Show a loading spinner while waiting for camera initialization
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 20),
+                Text(
+                  'Preparing camera...',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+          );
+        }
+      },
     );
   }
 }
