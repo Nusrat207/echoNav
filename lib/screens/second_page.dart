@@ -100,7 +100,7 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
 
     print("Starting to speak options");
     String optionsText =
-        "The features are Voice Assistant, Navigation, Object Recognition, Vision, Task Management, and Freemium Model. Which one would you like to use?";
+        "The features are Voice Assistant, Navigation, Vision, Task Management, and Freemium Model. Which one would you like to use?";
     print("Speaking: $optionsText");
 
     try {
@@ -217,9 +217,15 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
       _speechToText.stop();
     }
 
-    // Stop any ongoing TTS to prevent conflicts
+    // Stop TTS but don't disable it completely
     _flutterTts.stop();
 
+    // Set state explicitly to indicate we're not speaking
+    setState(() {
+      isTtsSpeaking = false;
+    });
+
+    // Navigate immediately without delay
     if (command.contains('voice assistant') ||
         command.contains('voice') ||
         command.contains('assistant')) {
@@ -230,7 +236,6 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
         // Force a complete reset when returning from navigation
         _resetStateCompletely();
       });
-      return;
     } else if (command.contains('navigation')) {
       Navigator.push(
         context,
@@ -238,7 +243,6 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
       ).then((_) {
         _resetStateCompletely();
       });
-      return;
     } else if (command.contains('object recognition') ||
         command.contains('object') ||
         command.contains('recognition')) {
@@ -248,7 +252,6 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
       ).then((_) {
         _resetStateCompletely();
       });
-      return;
     } else if (command.contains('task') ||
         command.contains('reminder') ||
         command.contains('manager') ||
@@ -260,7 +263,6 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
       ).then((_) {
         _resetStateCompletely();
       });
-      return;
     } else if (command.contains('freemium') ||
         command.contains('model') ||
         command.contains('premium')) {
@@ -270,7 +272,6 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
       ).then((_) {
         _resetStateCompletely();
       });
-      return;
     } else if (command.contains('vision')) {
       Navigator.push(
         context,
@@ -278,7 +279,6 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
       ).then((_) {
         _resetStateCompletely();
       });
-      return;
     } else {
       // If speech wasn't recognized properly or didn't match any feature
       _askAgain();
@@ -306,17 +306,17 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
     captureVoice();
   }
 
-  // New method to completely reset state when returning from navigation
+  // Update the reset method to properly restore TTS settings
   Future<void> _resetStateCompletely() async {
     print("Resetting state completely after navigation");
     if (!mounted) return;
 
-    // Stop any ongoing processes and ensure they're completely stopped
+    // Stop any ongoing processes
     _speechToText.stop();
     await _flutterTts.stop();
 
     // Wait a moment to ensure resources are released
-    await Future.delayed(Duration(milliseconds: 500));
+    await Future.delayed(Duration(milliseconds: 300));
 
     // Reset all state variables
     setState(() {
@@ -329,17 +329,28 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
     // Re-initialize TTS to ensure it's in a clean state
     await _flutterTts.setLanguage("en-US");
     await _flutterTts.setSpeechRate(0.5);
-    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setVolume(1.0); // Make sure volume is restored
     await _flutterTts.setPitch(1.0);
 
+    // Restore the completion handler
+    _flutterTts.setCompletionHandler(() {
+      print("TTS completion callback triggered");
+      if (mounted && !_hasNavigated) {
+        setState(() {
+          isTtsSpeaking = false;
+        });
+      }
+    });
+
     // Start speaking options again with a slight delay
-    Future.delayed(Duration(milliseconds: 300), () {
+    Future.delayed(Duration(milliseconds: 200), () {
       if (mounted) {
         _speakOptions();
       }
     });
   }
 
+  // Update the tile tap handler
   Widget _buildFeatureTile(
       IconData icon, String title, String subtitle, String commandKeyword) {
     return Padding(
@@ -359,8 +370,13 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
           style: TextStyle(fontSize: 17),
         ),
         onTap: () {
+          // Just stop TTS without disabling it
           _flutterTts.stop();
-          isTtsSpeaking = false;
+
+          setState(() {
+            isTtsSpeaking = false;
+          });
+
           _navigateToFeature(commandKeyword, fromVoiceCommand: false);
         },
       ),
