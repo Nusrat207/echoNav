@@ -37,9 +37,19 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this); // Remove lifecycle observer
+    // Clean up properly when this page is disposed
+    WidgetsBinding.instance.removeObserver(this);
     _flutterTts.stop();
     _speechToText.stop();
+
+    // Reset TTS to default settings before leaving
+    _flutterTts.setVolume(1.0);
+    _flutterTts.setPitch(1.0);
+    _flutterTts.setSpeechRate(0.5);
+
+    // Clear any completion handlers
+    _flutterTts.setCompletionHandler(() {});
+
     super.dispose();
   }
 
@@ -206,26 +216,19 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
     if (fromVoiceCommand && _hasNavigated) return;
 
     // Set flag immediately to prevent multiple navigations
-    if (fromVoiceCommand) {
-      setState(() {
-        _hasNavigated = true;
-        isListening = false;
-        isTtsSpeaking = false;
-      });
-
-      // Stop listening immediately when navigating
-      _speechToText.stop();
-    }
-
-    // Stop TTS but don't disable it completely
-    _flutterTts.stop();
-
-    // Set state explicitly to indicate we're not speaking
     setState(() {
+      _hasNavigated = true;
+      isListening = false;
       isTtsSpeaking = false;
     });
 
-    // Navigate immediately without delay
+    // Stop listening immediately when navigating
+    _speechToText.stop();
+
+    // Stop TTS but don't modify its settings
+    _flutterTts.stop();
+
+    // Navigate without any delays or additional TTS modifications
     if (command.contains('voice assistant') ||
         command.contains('voice') ||
         command.contains('assistant')) {
@@ -233,7 +236,6 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
         context,
         MaterialPageRoute(builder: (context) => Stt()),
       ).then((_) {
-        // Force a complete reset when returning from navigation
         _resetStateCompletely();
       });
     } else if (command.contains('navigation')) {
@@ -435,9 +437,100 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
                 ),
               ),
             ),
+
+            // Add button row at the bottom
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // Restart button
+                  ElevatedButton.icon(
+                    onPressed: _restartVoiceInput,
+                    icon: Icon(Icons.refresh, color: Colors.white),
+                    label: Text(
+                      "",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF610A8A),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                  ),
+
+                  // Just listen button
+                  ElevatedButton.icon(
+                    onPressed: _justListen,
+                    icon: Icon(Icons.mic, color: Colors.white),
+                    label: Text(
+                      "",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade700,
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  // Simplify the restart method to minimize interference
+  Future<void> _restartVoiceInput() async {
+    print("Manually restarting voice input");
+
+    // Stop any ongoing processes
+    _speechToText.stop();
+    await _flutterTts.stop();
+
+    // Reset state
+    setState(() {
+      isListening = false;
+      isTtsSpeaking = false;
+      _hasNavigated = false;
+    });
+
+    // Start the process again without delay
+    _speakOptions();
+  }
+
+  // Simplify the just listen method to minimize interference
+  Future<void> _justListen() async {
+    print("Starting direct voice input");
+
+    // Stop any ongoing processes
+    _speechToText.stop();
+    await _flutterTts.stop();
+
+    // Reset state
+    setState(() {
+      isListening = false;
+      isTtsSpeaking = false;
+      _hasNavigated = false;
+    });
+
+    // Start listening directly without delay
+    captureVoice();
   }
 }
