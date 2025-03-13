@@ -49,7 +49,10 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
     if (state == AppLifecycleState.paused) {
       _flutterTts.stop(); // Stop TTS when app goes to the background
     } else if (state == AppLifecycleState.resumed) {
-      _speakOptions(); // Restart TTS when app comes back to the foreground
+      // Only restart if we're not in the middle of a navigation
+      if (!_hasNavigated) {
+        _speakOptions(); // Restart TTS when app comes back to the foreground
+      }
     }
   }
 
@@ -59,6 +62,17 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
+
+    // Set up completion callbacks to reset state when TTS finishes
+    _flutterTts.setCompletionHandler(() {
+      print("TTS completion callback triggered");
+      if (mounted && !_hasNavigated) {
+        setState(() {
+          isTtsSpeaking = false;
+        });
+      }
+    });
+
     print("TTS initialized successfully.");
 
     // Add a small delay before speaking to ensure TTS is ready
@@ -70,8 +84,16 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
     print("Reached speak options");
     if (isTtsSpeaking) return; // Prevent multiple calls
 
-    isTtsSpeaking = true;
-    _hasNavigated = false;
+    // Reset state completely
+    setState(() {
+      isTtsSpeaking = true;
+      _hasNavigated = false;
+      isListening = false;
+    });
+
+    // Stop any ongoing speech or listening
+    _speechToText.stop();
+    await _flutterTts.stop();
 
     String optionsText =
         "The features are Voice Assistant, Navigation, Object Recognition, Vision, Task Management, and Freemium Model. Which one would you like to use?";
@@ -81,7 +103,7 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
     await _flutterTts.awaitSpeakCompletion(true);
 
     print("Speaking done!!!");
-    if (isTtsSpeaking) {
+    if (mounted && isTtsSpeaking) {
       print("Starting voice capture...");
       captureVoice();
     }
@@ -154,12 +176,14 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
 
     // Set flag immediately to prevent multiple navigations
     if (fromVoiceCommand) {
-      _hasNavigated = true;
+      setState(() {
+        _hasNavigated = true;
+        isListening = false;
+        isTtsSpeaking = false;
+      });
+
       // Stop listening immediately when navigating
-      if (isListening) {
-        _speechToText.stop();
-        setState(() => isListening = false);
-      }
+      _speechToText.stop();
     }
 
     // Stop any ongoing TTS to prevent conflicts
@@ -172,8 +196,8 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
         context,
         MaterialPageRoute(builder: (context) => Stt()),
       ).then((_) {
-        _hasNavigated = false;
-        _speakOptions();
+        // Force a complete reset when returning from navigation
+        _resetStateCompletely();
       });
       return;
     } else if (command.contains('navigation')) {
@@ -181,8 +205,7 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
         context,
         MaterialPageRoute(builder: (context) => GoogleMapsScreen()),
       ).then((_) {
-        _hasNavigated = false;
-        _speakOptions();
+        _resetStateCompletely();
       });
       return;
     } else if (command.contains('object recognition') ||
@@ -192,8 +215,7 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
         context,
         MaterialPageRoute(builder: (context) => ObjectRecognitionScreen()),
       ).then((_) {
-        _hasNavigated = false;
-        _speakOptions();
+        _resetStateCompletely();
       });
       return;
     } else if (command.contains('task') ||
@@ -205,8 +227,7 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
         context,
         MaterialPageRoute(builder: (context) => TaskManagementScreen()),
       ).then((_) {
-        _hasNavigated = false;
-        _speakOptions();
+        _resetStateCompletely();
       });
       return;
     } else if (command.contains('freemium') ||
@@ -216,8 +237,7 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
         context,
         MaterialPageRoute(builder: (context) => FreemiumModelScreen()),
       ).then((_) {
-        _hasNavigated = false;
-        _speakOptions();
+        _resetStateCompletely();
       });
       return;
     } else if (command.contains('vision')) {
@@ -225,8 +245,7 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
         context,
         MaterialPageRoute(builder: (context) => VisionPage()),
       ).then((_) {
-        _hasNavigated = false;
-        _speakOptions();
+        _resetStateCompletely();
       });
       return;
     } else {
@@ -254,6 +273,30 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
 
     // Start listening again
     captureVoice();
+  }
+
+  // New method to completely reset state when returning from navigation
+  Future<void> _resetStateCompletely() async {
+    print("Resetting state completely after navigation");
+    if (!mounted) return;
+
+    // Stop any ongoing processes
+    _speechToText.stop();
+    await _flutterTts.stop();
+
+    // Reset all state variables
+    setState(() {
+      _hasNavigated = false;
+      isListening = false;
+      isTtsSpeaking = false;
+      text = "Press the button & speak";
+    });
+
+    // Small delay to ensure everything is reset
+    await Future.delayed(Duration(milliseconds: 300));
+
+    // Start speaking options again
+    _speakOptions();
   }
 
   Widget _buildFeatureTile(

@@ -150,9 +150,10 @@ class _VisionPageState extends State<VisionPage> {
 
   @override
   void dispose() {
-    super.dispose();
     _cameraController.dispose();
     _speechToText.stop();
+    _flutterTts.stop(); // Make sure to stop TTS when disposing
+    super.dispose();
   }
 
   @override
