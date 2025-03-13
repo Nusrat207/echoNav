@@ -143,8 +143,15 @@ class _FreemiumModelScreenState extends State<FreemiumModelScreen> {
 
   @override
   void dispose() {
+    // Ensure all speech resources are properly released
     _speechToText.stop();
     _flutterTts.stop();
+
+    // Add a small delay to ensure resources are released
+    Future.delayed(Duration(milliseconds: 100), () {
+      // This will run after disposal but helps ensure resources are freed
+    });
+
     super.dispose();
   }
 
@@ -157,9 +164,17 @@ class _FreemiumModelScreenState extends State<FreemiumModelScreen> {
         backgroundColor: Colors.transparent,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.grey),
-          onPressed: () {
-            _flutterTts.stop(); // Stop TTS when navigating back
-            Navigator.pop(context);
+          onPressed: () async {
+            // Properly stop all speech activities
+            _speechToText.stop();
+            await _flutterTts.stop();
+
+            // Small delay to ensure resources are released
+            await Future.delayed(Duration(milliseconds: 200));
+
+            if (mounted) {
+              Navigator.pop(context);
+            }
           },
         ),
       ),

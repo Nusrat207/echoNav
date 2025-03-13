@@ -82,7 +82,10 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
 
   Future<void> _speakOptions() async {
     print("Reached speak options");
-    if (isTtsSpeaking) return; // Prevent multiple calls
+    if (isTtsSpeaking) {
+      print("Already speaking, skipping");
+      return; // Prevent multiple calls
+    }
 
     // Reset state completely
     setState(() {
@@ -95,12 +98,25 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
     _speechToText.stop();
     await _flutterTts.stop();
 
+    print("Starting to speak options");
     String optionsText =
         "The features are Voice Assistant, Navigation, Object Recognition, Vision, Task Management, and Freemium Model. Which one would you like to use?";
     print("Speaking: $optionsText");
 
-    await _flutterTts.speak(optionsText);
-    await _flutterTts.awaitSpeakCompletion(true);
+    try {
+      await _flutterTts.speak(optionsText);
+      await _flutterTts.awaitSpeakCompletion(true);
+      print("Speaking completed successfully");
+    } catch (e) {
+      print("Error during speech: $e");
+      // Try to recover
+      setState(() {
+        isTtsSpeaking = false;
+      });
+      await Future.delayed(Duration(milliseconds: 300));
+      if (mounted) _speakOptions();
+      return;
+    }
 
     print("Speaking done!!!");
     if (mounted && isTtsSpeaking) {
@@ -280,9 +296,12 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
     print("Resetting state completely after navigation");
     if (!mounted) return;
 
-    // Stop any ongoing processes
+    // Stop any ongoing processes and ensure they're completely stopped
     _speechToText.stop();
     await _flutterTts.stop();
+
+    // Wait a moment to ensure resources are released
+    await Future.delayed(Duration(milliseconds: 500));
 
     // Reset all state variables
     setState(() {
@@ -292,11 +311,18 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver {
       text = "Press the button & speak";
     });
 
-    // Small delay to ensure everything is reset
-    await Future.delayed(Duration(milliseconds: 300));
+    // Re-initialize TTS to ensure it's in a clean state
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
 
-    // Start speaking options again
-    _speakOptions();
+    // Start speaking options again with a slight delay
+    Future.delayed(Duration(milliseconds: 300), () {
+      if (mounted) {
+        _speakOptions();
+      }
+    });
   }
 
   Widget _buildFeatureTile(
