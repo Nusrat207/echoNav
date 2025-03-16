@@ -241,10 +241,10 @@ class Assistant:
         2. Identify potential obstacles and hazards
         3. Describe the spatial layout of the environment
         4. Provide clear, concise directional guidance
-        5. Use specific distances and directions (left/right/front/back)
+        5. Use specific distances and directions (left/right/front/back). Use approximate distances such as feet. But always say approximately.
         6. Prioritize safety-critical information
-        7. DON'T say 'current instruction completed' if you determine that the user is not following your instructions or the user is indoors.
         8. Do not have any special characters in the response as it will be converted to speech.
+        9. ALWAYS mention the obstacles if any
         Keep responses brief and focused on navigation-relevant details.
         """
 

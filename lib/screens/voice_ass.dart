@@ -183,7 +183,7 @@ class _Stt extends State<Stt> {
       String fullPrompt = chatHistoryContext + "\nUser: " + text;
 
       // Send the voice input to the backend
-      var url = Uri.parse("http://192.168.238.54:8000/api/ask/voice");
+      var url = Uri.parse("http://192.168.0.103:8000/api/ask/voice");
       var response = await http.post(
         url,
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},

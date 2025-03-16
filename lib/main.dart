@@ -284,7 +284,7 @@ class _FaceAuthScreenState extends State<FaceAuthScreen>
 
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://192.168.238.54:5000/register'),
+        Uri.parse('http://192.168.0.103:5000/register'),
       );
       request.files.add(await http.MultipartFile.fromPath('image', file.path));
       request.fields['name'] = 'User';
