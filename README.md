@@ -1,7 +1,7 @@
 # EchoNav
 
 EchoNav is a mobile application built with Flutter, designed to empower visually impaired individuals by offering accessible tools for daily tasks, navigation, and communication. The app utilizes voice control for hands-free interaction and AI-driven object recognition to provide real-time descriptions of surroundings.
-![App Logo/Banner Image](./DEMO/landing.jpg)
+<img src="./DEMO/landing.jpg" alt="App Logo/Banner Image" width="300"/>
 
 ## Key Features
 
@@ -16,7 +16,7 @@ EchoNav is a mobile application built with Flutter, designed to empower visually
 - Hands-free navigation throughout the app
 - Voice command recognition for all app features
 
-![Voice Assistant Interface](./DEMO/va.jpg)
+<img src="./DEMO/va.jpg" alt="Voice Assistant Interface" width="250"/>
 
 ### 3. Vision Recognition
 - Real-time object detection and scene recognition
@@ -25,7 +25,7 @@ EchoNav is a mobile application built with Flutter, designed to empower visually
 - FastAPI backend for quick processing
 - Support for both static images and real-time camera feed
 
-![Vision Recognition Demo Image](./DEMO/vision.jpg)
+<img src="./DEMO/vision.jpg" alt="Vision Recognition Demo Image" width="250"/>
 
 ### 4. Navigation Assistance
 - Voice-guided navigation
@@ -34,7 +34,7 @@ EchoNav is a mobile application built with Flutter, designed to empower visually
 - Accessible route planning and directions
 - Audio feedback for navigation cues
 
-![Navigation Interface Image](./DEMO/navigation.jpg)
+<img src="./DEMO/navigation.jpg" alt="Navigation Interface Image" width="250"/>
 
 ### 5. Task Management
 - Voice-controlled task creation and management
@@ -43,7 +43,7 @@ EchoNav is a mobile application built with Flutter, designed to empower visually
 - Priority-based task organization
 - SQLite database for local storage
 
-![Task Management Interface Image](./DEMO/task.jpg)
+<img src="./DEMO/task.jpg" alt="Task Management Interface Image" width="250"/>
 
 ### 6. Premium Features (Subscription Plans)
 
@@ -63,7 +63,7 @@ EchoNav offers several subscription plans with enhanced features:
 - ৳80 (20% savings from original ৳100)
 - All premium features included
 
-![Subscription Plans Interface Image](./DEMO/subscription_1.jpg)
+<img src="./DEMO/subscription_1.jpg" alt="Subscription Plans Interface Image" width="250"/>
 
 All premium plans include:
 - Faster object recognition
@@ -74,8 +74,10 @@ All premium plans include:
 - Premium user support
 
 
-![Subscription Plans Interface Image](./DEMO/subscription_2.jpg)
-![Subscription Plans Interface Image](./DEMO/subscription_3.jpg)
+<div style="display: flex; gap: 10px;">
+    <img src="./DEMO/subscription_2.jpg" alt="Subscription Plans Interface Image" width="250"/>
+    <img src="./DEMO/subscription_3.jpg" alt="Subscription Plans Interface Image" width="250"/>
+</div>
 
 
 ### 7. Voice-Controlled Interface
@@ -85,7 +87,7 @@ All premium plans include:
 - Customizable voice settings
 - Multiple language support
 
-![Voice Control Interface Image](./DEMO/menu.jpg)
+<img src="./DEMO/menu.jpg" alt="Voice Control Interface Image" width="250"/>
 
 ### Frontend (Flutter)
 - Material Design UI
