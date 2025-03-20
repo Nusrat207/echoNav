@@ -63,7 +63,7 @@ EchoNav offers several subscription plans with enhanced features:
 - ৳80 (20% savings from original ৳100)
 - All premium features included
 
-<img src="./DEMO/subscription_1.jpg" alt="Subscription Plans Interface Image" width="250"/>
+<img src="./DEMO/DEMO\subsciption_1.jpg" alt="Subscription Plans Interface Image" width="250"/>
 
 All premium plans include:
 - Faster object recognition
@@ -73,12 +73,8 @@ All premium plans include:
 - Enhanced voice commands
 - Premium user support
 
-
-<div style="display: flex; gap: 10px;">
-    <img src="./DEMO/subscription_2.jpg" alt="Subscription Plans Interface Image" width="250"/>
-    <img src="./DEMO/subscription_3.jpg" alt="Subscription Plans Interface Image" width="250"/>
-</div>
-
+<img src="./DEMO/subsciption_2.jpg" alt="Subscription Plans Interface Image" width="250"/>
+<img src="./DEMO/subsciption_3.jpg" alt="Subscription Plans Interface Image" width="250"/>
 
 ### 7. Voice-Controlled Interface
 - Complete hands-free operation
