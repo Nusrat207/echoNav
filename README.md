@@ -133,6 +133,87 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 
 ### API Endpoints
 
+#### Face Recognition Configuration
+The backend uses:
+- Flask for API endpoints
+- DeepFace for facial recognition
+- OpenCV for image processing
+- Base64 encoding for image transfer
+- SQLite for user management
+
+### Environment Variables (.env)
+The facial recognition backend requires:
+```bash
+DEEPFACE_MODEL=VGG-Face
+FACE_DETECTOR_BACKEND=opencv
+```
+
+### Server Configuration
+To run the Flask server:
+```bash
+cd faceRecog_backend
+python -m venv venv
+source venv/bin/activate  # or `venv\Scripts\activate` on Windows
+pip install -r requirements.txt
+python app.py
+```
+
+### API Endpoints
+
+#### Authentication
+- `POST /register`
+  - Registers new user with facial data
+  - Parameters:
+    - `image`: str (Base64) - Facial image for registration
+    - `user_id`: str - Unique identifier for the user
+  - Returns:
+    - Success/failure message
+    - User ID if successful
+
+- `POST /login`
+  - Authenticates user using facial recognition
+  - Parameters:
+    - `image`: str (Base64) - Facial image for verification
+  - Returns:
+    - Authentication status
+    - User ID if successful
+    - Confidence score
+
+- `GET /verify/{user_id}`
+  - Verifies existing user's identity
+  - Parameters:
+    - `user_id`: str - User identifier
+    - `image`: str (Base64) - Facial image for verification
+  - Returns:
+    - Verification status
+    - Confidence score
+
+#### User Management
+- `GET /users`
+  - Lists all registered users
+  - Returns:
+    - Array of user IDs and registration dates
+
+- `DELETE /users/{user_id}`
+  - Removes user from system
+  - Parameters:
+    - `user_id`: str - User to delete
+  - Returns:
+    - Deletion confirmation
+
+### Dependencies
+Key dependencies include:
+```bash
+flask==2.0.1
+deepface==0.0.75
+opencv-python==4.5.3.56
+numpy==1.21.2
+pillow==8.3.2
+requests==2.26.0
+python-dotenv==0.19.0
+```
+
+
 #### Vision and Navigation
 - `POST /api/ask`
   - Processes vision and language queries
@@ -190,29 +271,6 @@ Key dependencies include:
 - pydantic
 - logging
 
-### System Features
-- Real-time vision processing
-- Natural language task management
-- Context-aware conversation
-- Voice command interpretation
-- Persistent task storage
-- Multi-user support
-- Error handling and logging
-
-### Performance Optimizations
-- Efficient database operations
-- Structured response parsing
-- Configurable model parameters
-- Session management
-- Logging system for debugging
-- Error handling for all endpoints
-
-### Security Features
-- User authentication
-- Database security
-- API key protection
-- Input validation
-- Secure image handling
 
 ## Prerequisites
 
@@ -249,56 +307,5 @@ python -m venv venv
 source venv/bin/activate  # or `venv\Scripts\activate` on Windows
 pip install -r requirements.txt
 python main.py
-```
-
-#### Face Recognition Configuration
-The backend uses:
-- DeepFace for facial recognition
-- Qdrant Cloud for vector database storage
-- Collection name: "face_embeddings"
-- Vector size: 128
-- Distance metric: Cosine similarity
-
-### Environment Variables (.env)
-The facial recognition backend requires:
-```bash
-QDRANT_CLOUD_URL=https://your-qdrant-cluster-url
-QDRANT_API_KEY=your-qdrant-api-key
-```
-
-### Server Configuration
-To run the Flask server:
-```bash
-python app.py
-```
-Server runs on `http://0.0.0.0:5000` by default
-
-### Database Details
-- Uses Qdrant Cloud for face embedding storage
-- Collection automatically created if not exists
-- Vectors configured for facial recognition:
-  - Size: 128 dimensions
-  - Distance: Cosine similarity
-  - Optimized for facial recognition queries
-
-### Security Features
-- UUID-based user identification
-- Secure face embedding storage
-- API key authentication for Qdrant Cloud
-- Debug mode configurable
-- CORS support for cross-origin requests
-
-
-### Dependencies
-Key dependencies include:
-- Flask
-- DeepFace
-- Qdrant Client
-- OpenCV
-- NumPy
-
-Install all dependencies using:
-```bash
-pip install -r requirements.txt
 ```
 
