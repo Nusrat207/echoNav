@@ -104,6 +104,116 @@ All premium plans include:
 - Task management
 - Runs on port 8000
 - Implemented with LangChain
+
+### Vision Model Configuration
+The backend uses:
+- FastAPI for API endpoints
+- Gemini Flash 2.0 for vision and language processing
+- LangChain for agentic AI pipeline management
+- SQLite for task storage
+- Base64 encoding for image transfer
+- Real-time scene analysis and navigation guidance
+
+### Environment Variables (.env)
+The vision model backend requires:
+```bash
+GOOGLE_API_KEY=your-google-api-key
+MODEL_NAME=gemini-2.0-flash
+```
+
+### Server Configuration
+To run the FastAPI server:
+```bash
+cd vision_model
+python -m venv venv
+source venv/bin/activate  # or `venv\Scripts\activate` on Windows
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+### API Endpoints
+
+#### Vision and Navigation
+- `POST /api/ask`
+  - Processes vision and language queries
+  - Parameters:
+    - `prompt`: str (Form) - User's question
+    - `image`: Optional[str] (Form) - Base64 encoded image
+  - Returns:
+    - AI-generated response describing the scene/objects
+
+- `POST /api/ask/map`
+  - Similar to /api/ask but specialized for map navigation
+  - Parameters same as /api/ask
+
+- `POST /api/ask/voice`
+  - Handles voice-only queries without images
+  - Parameters:
+    - `prompt`: str (Form) - User's voice query
+
+#### Task Management
+- `POST /api/login`
+  - Authenticates user and initializes task management
+  - Parameters:
+    - `user_id`: str (Form) - User identifier
+
+- `GET /api/tasks`
+  - Retrieves all tasks for current user
+  - Returns list of tasks with IDs and titles
+
+- `POST /api/tasks/add`
+  - Creates new task
+  - Parameters:
+    - `task_title`: str (Form) - Task description
+
+- `DELETE /api/tasks/{task_id}`
+  - Removes specific task
+  - Parameters:
+    - `task_id`: int - Task identifier
+
+- `POST /api/tasks/command`
+  - Natural language task management
+  - Parameters:
+    - `command`: str (Form) - Voice command for task operations
+  - Supports: add, delete, list operations
+
+### Dependencies
+Key dependencies include:
+- fastapi
+- uvicorn
+- python-multipart
+- python-dotenv
+- google-generativeai
+- langchain
+- langchain_google_genai
+- sqlite3
+- pydantic
+- logging
+
+### System Features
+- Real-time vision processing
+- Natural language task management
+- Context-aware conversation
+- Voice command interpretation
+- Persistent task storage
+- Multi-user support
+- Error handling and logging
+
+### Performance Optimizations
+- Efficient database operations
+- Structured response parsing
+- Configurable model parameters
+- Session management
+- Logging system for debugging
+- Error handling for all endpoints
+
+### Security Features
+- User authentication
+- Database security
+- API key protection
+- Input validation
+- Secure image handling
+
 ## Prerequisites
 
 Before running the application, ensure you have the following installed:
