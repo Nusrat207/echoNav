@@ -286,7 +286,7 @@ Before running the application, ensure you have the following installed:
 
 ### 1. Flutter Frontend
 ```bash
-git clone https://github.com/yourusername/echonav.git
+git clone https://github.com/Nusrat207/echoNav.git
 cd echonav
 flutter pub get
 ```
